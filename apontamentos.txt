@@ -1,0 +1,61 @@
+thread safe 
+fazer o file sistem e depois os outros 2
+usar as fubcoes do codigo base
+fazer funcao que so usa coisas thread safe normalmente e thread safe 
+
+
+o que è threads?
+	
+	as coisas sao independentes umas das outras
+	se tivessemos 2 pcs a fazer as mesmas coisas dobramos a velocidade
+	1 core - 1 processador separado
+	1 SO pega no core e mete a correr uma thread
+	podemos ter 100 threads no nossos 8 cores
+	threads podem ser processo ou cores (confuso), depende do contexto
+	quero usar threads para ser mais rapido
+	tudo o que escrevemos agora so usa 1 core
+	usando threads conseguimos usar mais cores (threads) 
+
+	pthread - biblioteca de c que trata de threads
+	#iclude pthread.h
+
+	se tiver 2 cores a executar cídigo ao mesmo tempo --> problema?
+		tentar escrever no mesmo sitio ao mesmo tempo
+		dados ficam corrompidos
+
+
+
+	evitar 2 pessoas threads escreverem ao mesmo tempo --> mutex / lock / trinco
+
+	mutex associado a variavel --> mutex tem lock e unlock
+	cada thread antes de escrever faz lock 
+
+
+	ordem dos locks tem de ser a mesma em vários threads senao vamos entrar num loop infinito --> deadlock;
+
+
+	prjeto de granularidade fina -->  ser especifico nos mutex e threads --> nao fazer um mutex a bloquear tudo
+
+
+
+	VARIAVIES DE CONDICAO --
+
+		lock ----faz na realidade---> while (lock not free) give_me_lock
+
+		este while ta sempre a correr --> OS é burro
+
+		OS mete uma thread a correr isto em vez de fazer codigo mesmo
+
+		quero meter a thread a correr codgio util
+
+
+			variavel de condicao tem wait e signal
+
+			vamos checkar uma condicao e se pudermos correr corremos senao espero (wait(cond_var,mutex))
+
+			so coemco a executar quando outra thread correr o signal --> a outra thread mandou um sinal a dizer que  o lock ja esta disponivel ;
+
+			
+
+			
+

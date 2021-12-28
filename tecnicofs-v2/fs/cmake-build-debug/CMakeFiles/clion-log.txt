@@ -1,0 +1,4 @@
+/snap/clion/175/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/175/bin/ninja/linux/ninja -G Ninja /home/andre/Desktop/SO/project/tecnicofs-v2/fs
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/andre/Desktop/SO/project/tecnicofs-v2/fs/cmake-build-debug

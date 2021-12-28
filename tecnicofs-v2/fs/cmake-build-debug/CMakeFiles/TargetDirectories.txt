@@ -1,0 +1,3 @@
+/home/andre/Desktop/SO/project/tecnicofs-v2/fs/cmake-build-debug/CMakeFiles/rebuild_cache.dir
+/home/andre/Desktop/SO/project/tecnicofs-v2/fs/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/andre/Desktop/SO/project/tecnicofs-v2/fs/cmake-build-debug/CMakeFiles/fs.dir
