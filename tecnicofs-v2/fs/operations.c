@@ -6,6 +6,7 @@
 #include <math.h>
 #define DIRECT 0
 #define INDIRECT 1
+
 int tfs_init() {
     state_init();
 
@@ -129,10 +130,15 @@ int block_create(inode_t * inode, size_t mem){
     while (n_blocks != 10 && mem > 0){
         if((inode -> i_data_block[n_blocks] = data_block_alloc()) == -1)
             return -1;
-        mem -= BLOCK_SIZE;
+
+        if (BLOCK_SIZE > mem) //P Bug corrigido: size_t não tem sinal. 4 - 1024 = 18446744073709550596 e não -1020
+            mem = 0;
+        else
+            mem -= BLOCK_SIZE;
+
         n_blocks++;
     }
-    if (mem <= 0)
+    if (mem == 0)
         return 0;
     if (block_create_indirect(inode,mem) == -1)
         return -1;
@@ -171,7 +177,7 @@ int block_create(inode_t * inode, size_t mem){
 void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type){
     if (type == DIRECT)
         return data_block_get(inode -> i_data_block[n_blocks-1]);
-    return data_block_get(*(blocks_of_blocks + (n_blocks-1));
+    return data_block_get(*(blocks_of_blocks + (n_blocks-1)));
 }
 
 int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * n_blocks, size_t * to_write,int to_write_cpy,size_t* mem_available,size_t *buffer_offset,int type){
@@ -182,14 +188,14 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
         return -1;
 
     size_t what_to_write = *mem_available > *to_write ? *to_write : *mem_available;
-    memcpy(block + block_offset, buffer + *buffer_offset, what_to_write);
+    memcpy(block + *block_offset, buffer + *buffer_offset, what_to_write);
 
     if (what_to_write == *to_write)
         return to_write_cpy;
 
-    *buffer_offset+= *what_to_write;
-    *to_write -= *what_to_write;
-    *n_blocks++;
+    *buffer_offset += what_to_write;
+    *to_write -= what_to_write;
+    (*n_blocks)++; //P Bug: Tinhas *n_blocks++, estava a incrementar o pointer e não o conteúdo
     *block_offset = 0;
     *mem_available = 0; // nao me lembro porque fiz isto
     int value;
@@ -202,7 +208,7 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
         if (block == NULL)
             return -1;
 
-        memcpy(block + block_offset,  buffer + *buffer_offset, what_to_write); //pode ter bugs
+        memcpy(block + *block_offset,  buffer + *buffer_offset, what_to_write); //pode ter bugs
         *buffer_offset+= what_to_write;
 
         if (what_to_write == *to_write)
@@ -230,20 +236,20 @@ size_t data_block_write(inode_t * inode, size_t offset, char const * buffer, siz
         else if(res == to_write_cpy)
             return to_write_cpy;
     }
-        //escrever indiretamente
-        n_blocks -= 10;
-        int res = block_write(inode,&block_offset,buffer,&n_blocks,&to_write,to_write_cpy,&mem_available,&buffer_offset,INDIRECT);
+    //escrever indiretamente
+    n_blocks -= 10;
+    int res = block_write(inode,&block_offset,buffer,&n_blocks,&to_write,to_write_cpy,&mem_available,&buffer_offset,INDIRECT);
 
-        if (res == -1)
-            return -1;
-
-        else if (res == to_write_cpy)
-            return to_write_cpy;
-
+    if (res == -1)
         return -1;
-        //acabar isto mas a ideia nao e dificil, e escrever no block2 e se ele acabar passar para os proximos blocos,
-        //como se fez no endereçamento direto
-        //acho que ja esta functional :)
+
+    else if (res == to_write_cpy)
+        return to_write_cpy;
+
+    return -1;
+    //acabar isto mas a ideia nao e dificil, e escrever no block2 e se ele acabar passar para os proximos blocos,
+    //como se fez no endereçamento direto
+    //acho que ja esta functional :)
 }
 
 
@@ -282,6 +288,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     return (ssize_t)to_write;
 }
 
+/*
 int block_read(){
     if (block_offset != 0 ) {
         void *block = get_next_block(block_of_blocks,inode,n_blocks,type);
@@ -309,26 +316,33 @@ int block_read(){
         to_read-=what_to_read;
     }
 }
-
+*/
 
 size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read){ //a ideia e saber onde comecar a ler e ler ate ao fim de cada bloco e se chegarmos ao 10 temos de ler indiretamente
-    int n_blocks = ceil((double)offset/BLOCK_SIZE); //FIXME NAO TA NADA MAL MAS NAO ESQUECER QUE TEMOS DE LER PARA BUFFER + QQL COISA SENAO ESCREVEMOS ME CIMA DO QUE JA LA TAVA
+    int n_blocks = (offset == 0) ? 1 : ceil((double)offset/BLOCK_SIZE); //P Bug: Se offset = 0, n_blocks seria 0 e farias i_data_block[n_blocks-1] = i_data_block[-1] = BOOM //FIXME NAO TA NADA MAL MAS NAO ESQUECER QUE TEMOS DE LER PARA BUFFER + QQL COISA SENAO ESCREVEMOS ME CIMA DO QUE JA LA TAVA
     size_t block_offset = offset % BLOCK_SIZE;
     size_t buffer_offset = 0,to_read_cpy = to_read;
-    if (n_blocks <= 10){
+
+    if (n_blocks <= 10) {
+
         if (block_offset != 0 ) {
             void *block = data_block_get(inode->i_data_block[n_blocks - 1]);
+
             if (block == NULL)
                 return -1;
+
             size_t what_to_read = to_read > BLOCK_SIZE - block_offset ? BLOCK_SIZE- block_offset : to_read;
             memcpy(buffer + buffer_offset, block + block_offset, what_to_read); //FIXME VER SE O QUE E PARA LER E MENOR QUE ESTE VALOR
             buffer_offset += what_to_read;
+
             if(what_to_read == to_read)
                 return to_read_cpy;
+
             n_blocks++;
             to_read -= what_to_read;
             block_offset = 0;
         }
+
         while (n_blocks <= 10 && to_read > 0){
             void * block = data_block_get(inode-> i_data_block[n_blocks-1]);
             if (block == NULL)
@@ -341,34 +355,48 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
                 return to_read_cpy;
             to_read-=what_to_read;
         }
+
     }
+
     n_blocks -= 10;
     int* block_of_blocks = (int*)data_block_get(inode->i_data_block[10]);
+
     if (block_of_blocks == NULL)
         return -1;
+
     void * block = data_block_get(*(block_of_blocks + n_blocks - 1));
+
     if (block == NULL)
         return -1;
+
     if (block_offset != 0 ) {
         size_t what_to_read = to_read > BLOCK_SIZE - block_offset ? BLOCK_SIZE- block_offset : to_read;
         memcpy(buffer + buffer_offset, block + block_offset, what_to_read); //FIXME VER SE O QUE E PARA LER E MENOR QUE ESTE VALOR
         buffer_offset += what_to_read;
+
         if(what_to_read == to_read)
             return to_read_cpy;
+
         n_blocks++;
         to_read -= what_to_read;
         block_offset = 0;
     }
+
     while (to_read >= 0){
-        void * block = data_block_get(*(block_of_blocks + n_blocks - 1 ));
-        n_blocks ++;
+        void * block = data_block_get(*(block_of_blocks + n_blocks - 1));
+        n_blocks++;
+
         size_t what_to_read = to_read > BLOCK_SIZE ? BLOCK_SIZE : to_read;
         memcpy(buffer + buffer_offset,block,what_to_read);
+
         buffer_offset += what_to_read;
+
         if(what_to_read == to_read)
             return to_read_cpy;
+
         to_read-= what_to_read;
     }
+
     return -1;
     //fazer indiretamente; //acho que ja funciona :))
 }
@@ -397,7 +425,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     /* The offset associated with the file handle is
      * incremented accordingly */
     file->of_offset += to_read;
-    }
+
 
     return (ssize_t)to_read;
 }
@@ -416,20 +444,22 @@ int tfs_copy_to_external_fs(char const *source_path, char const *dest_path) {
     if (!valid_pathname(source_path)) {
         return -1;
     }
+
     int inum = tfs_lookup(source_path);
-    if (inum >= 0) {
-        /* The file already exists */
-        inode_t *inode = inode_get(inum);
-        size = inode->i_size;
-        if (inode == NULL) {
-            return -1;
-        }
-    }
+    if (inum == -1)
+        return -1;
+
+    inode_t *inode = inode_get(inum);
+    if (inode == NULL)
+        return -1;
+
+    size = inode->i_size;
+
     char *buffer = malloc(size + 1);
     int fh = add_to_open_file_table(inum, 0);
     tfs_read(fh, buffer, size);
     tfs_close(fh);
-    FILE *f = fopen(dest_path, "w");
+    FILE *f = fopen(dest_path, "w+");
     if (f == NULL)
         return -1;
     int bytes_written = fwrite(buffer, sizeof(char), size,

@@ -1,8 +1,8 @@
-#include "fs/operations.h"
+#include "operations.h"
 #include <assert.h>
 #include <string.h>
 
-int main() {
+int main() { // SUCCESS
 
     char *str = "AAA!";
     char *path = "/f1";
@@ -16,7 +16,7 @@ int main() {
     f = tfs_open(path, TFS_O_CREAT);
     assert(f != -1);
 
-    r = tfs_write(f, str, strlen(str));
+    r = tfs_write(f, str, strlen(str)); // explode aqui
     assert(r == strlen(str));
 
     assert(tfs_close(f) != -1);
