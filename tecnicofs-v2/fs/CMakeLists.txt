@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/copy_to_external_indirect_blocks.c)
+        tests/copy_to_external_direct_blocks.c)
 
 target_link_libraries(fs PRIVATE m)

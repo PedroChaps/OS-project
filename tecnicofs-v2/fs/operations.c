@@ -7,6 +7,24 @@
 #define DIRECT 0
 #define INDIRECT 1
 
+
+int max(int a, int b){
+    int max = (a > b) ? a : b;
+    return max;
+}
+
+int min(int a, int b){
+    int min = (a > b) ? b : a;
+    return min;
+}
+
+int sub_or_zero(int nr, int toSub){
+    if (toSub > nr)
+        return 0;
+    else
+        return nr - toSub;
+}
+
 int tfs_init() {
     state_init();
 
@@ -100,27 +118,30 @@ int tfs_open(char const *name, int flags) {
      * opened but it remains created */
 }
 
-
 int tfs_close(int fhandle) { return remove_from_open_file_table(fhandle); }
 
 int block_create_indirect(inode_t *inode, size_t mem){
     int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
-    n_blocks -= 10;
-    if (n_blocks == 0)
-        if((inode -> i_data_block[10] = data_block_alloc()) == -1) //FIXME vejo alguns bugs
+    int n_blocks_ind = max(n_blocks - 10, 0); // if n_blocks becomes negative, set it to 0
+    if (n_blocks_ind == 0)
+        if((inode -> i_data_block[10] = data_block_alloc()) == -1) // if 0, it means the indirect block wasn't created yet
             return -1;
-    int * block  = (int*) data_block_get(inode ->i_data_block[10]);
+
+    int * block = (int*) data_block_get(inode ->i_data_block[10]);
     if (block == NULL)
         return -1;
+
+    block += n_blocks_ind; // Set the pointer to the next free block position
     while (mem > 0){
-        block += n_blocks;
+        // Allocs a block in the free position and goes to next position
         *block = data_block_alloc();
         if (*block == -1)
             return -1;
-        n_blocks++;
-        mem -= BLOCK_SIZE;
+        block++;
+        n_blocks_ind++;
+        mem = sub_or_zero(mem, BLOCK_SIZE);
     }
-    return 0; //quando se atualiza o size do inode??
+    return 0;
 }
 
 int block_create(inode_t * inode, size_t mem){
@@ -187,7 +208,7 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
     if (block == NULL)
         return -1;
 
-    size_t what_to_write = *mem_available > *to_write ? *to_write : *mem_available;
+    size_t what_to_write = min(*mem_available, *to_write);
     memcpy(block + *block_offset, buffer + *buffer_offset, what_to_write);
 
     if (what_to_write == *to_write)
@@ -200,22 +221,25 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
     *mem_available = 0; // nao me lembro porque fiz isto
     int value;
     if (type == DIRECT) value = 10;
-    if (type == INDIRECT) value = BLOCK_SIZE / sizeof(int);
+    else if (type == INDIRECT){
+        value = BLOCK_SIZE / sizeof(int);
+        (*n_blocks)--;
+    }
     while (*n_blocks <= value && *to_write > 0) {
-        size_t what_to_write = *to_write > BLOCK_SIZE ? BLOCK_SIZE : *to_write;
+        size_t what_to_write = min(*to_write, BLOCK_SIZE);
         void *block = get_next_block (block_of_blocks, inode,*n_blocks,type);
 
         if (block == NULL)
             return -1;
 
         memcpy(block + *block_offset,  buffer + *buffer_offset, what_to_write); //pode ter bugs
-        *buffer_offset+= what_to_write;
+        *buffer_offset += what_to_write;
 
         if (what_to_write == *to_write)
             return to_write_cpy;
 
-        n_blocks++;
-        *to_write -= BLOCK_SIZE;
+        (*n_blocks)++; //P Bug: Tinhas "n_blocks++", estavas a incrementar o pointer e não o nr de blocos
+        *to_write = sub_or_zero(*to_write, BLOCK_SIZE);
     }
     return 0;
 }

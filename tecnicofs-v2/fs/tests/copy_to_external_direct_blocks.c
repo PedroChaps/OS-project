@@ -5,7 +5,7 @@
 
 #define SIZE_TO_TEST (1024*10)
 
-int main() { // Failed
+int main() { // Passou! :D
 
     char big_str[SIZE_TO_TEST];
     memset(big_str, 'x', sizeof(big_str));
@@ -13,7 +13,7 @@ int main() { // Failed
     char buffer[SIZE_TO_TEST];
 
     char *path = "/f1";
-    char *path2 = "/home/sofia/Documentos/File-System/tecnicofs/tests/test9.txt";  
+    char *path2 = "/home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs/tests/escreve_aq_bro.txt";
 
     printf("Size to test = %ld\n", sizeof(buffer));
 

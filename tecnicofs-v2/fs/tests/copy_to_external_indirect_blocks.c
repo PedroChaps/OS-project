@@ -3,10 +3,10 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SIZE_TO_TEST (2049)
+#define SIZE_TO_TEST (1024 * 71 + 5)
 
 
-int main() { // Failed - Passa com size <= 1024. Passou com 2048. Falhou com 2049 e deve falhar com 1024 * 10 (pq cria o bloco de indireção)
+int main() { // Passou! :D
 
     char big_str[SIZE_TO_TEST];
 
@@ -50,3 +50,5 @@ int main() { // Failed - Passa com size <= 1024. Passou com 2048. Falhou com 204
 
     return 0;
 }
+
+// Falta testar escrever um ficheiro a seguir ao outro
