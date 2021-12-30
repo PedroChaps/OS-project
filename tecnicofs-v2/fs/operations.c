@@ -25,6 +25,8 @@ int sub_or_zero(int nr, int toSub){
         return nr - toSub;
 }
 
+void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type);
+
 int tfs_init() {
     state_init();
 
@@ -78,34 +80,50 @@ int tfs_open(char const *name, int flags) {
         /* Trucate (if requested) */
         if (flags & TFS_O_TRUNC) {
             if (inode->i_size > 0) {
-                int n_blocks = (int) ceil((double)inode -> i_size/ BLOCK_SIZE);
-                for (int ix = 0; ix < n_blocks; ix++)
-                    if (data_block_free(inode->i_data_block[ix]) == -1) { //nao tou a dar free aos blocos que estao guardados no bloco de indices
+                int n_blocks = (int) ceil((double) inode->i_size / BLOCK_SIZE), i;
+
+                for (i = 0; i < n_blocks && i <= 10; i++)
+                    if (data_block_free(inode->i_data_block[i]) == -1)
                         return -1;
-                }
-                inode->i_size = 0;
+
+                        if (n_blocks > 10) { // block of blocks to be fred
+
+                            int *block_of_blocks = (int *) data_block_get(inode->i_data_block[10]);
+
+                            while (*block_of_blocks != 0) {
+                                if (data_block_free(*block_of_blocks) == -1)
+                                    return -1;
+
+                                *block_of_blocks = 0;
+                                block_of_blocks++;
+                            }
+                        }
+
+                        inode->i_size = 0;
+                    }
             }
-        }
-        /* Determine initial offset */
-        if (flags & TFS_O_APPEND) {
-            offset = inode->i_size;
-        } else {
+            /* Determine initial offset */
+            if (flags & TFS_O_APPEND) {
+                offset = inode->i_size;
+            } else {
+                offset = 0;
+            }
+
+        } else if (flags & TFS_O_CREAT) {
+            /* The file doesn't exist; the flags specify that it should be created */
+            /* Create inode */
+            inum = inode_create(T_FILE);
+            if (inum == -1) {
+                return -1;
+            }
+            /* Add entry in the root directory */
+            if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
+                inode_delete(inum);
+                return -1;
+            }
             offset = 0;
         }
-    } else if (flags & TFS_O_CREAT) {
-        /* The file doesn't exist; the flags specify that it should be created*/
-        /* Create inode */
-        inum = inode_create(T_FILE);
-        if (inum == -1) {
-            return -1;
-        }
-        /* Add entry in the root directory */
-        if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
-            inode_delete(inum);
-            return -1;
-        }
-        offset = 0;
-    } else {
+    else {
         return -1;
     }
 
@@ -123,6 +141,7 @@ int tfs_close(int fhandle) { return remove_from_open_file_table(fhandle); }
 int block_create_indirect(inode_t *inode, size_t mem){
     int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
     int n_blocks_ind = max(n_blocks - 10, 0); // if n_blocks becomes negative, set it to 0
+
     if (n_blocks_ind == 0)
         if((inode -> i_data_block[10] = data_block_alloc()) == -1) // if 0, it means the indirect block wasn't created yet
             return -1;
@@ -132,6 +151,7 @@ int block_create_indirect(inode_t *inode, size_t mem){
         return -1;
 
     block += n_blocks_ind; // Set the pointer to the next free block position
+
     while (mem > 0){
         // Allocs a block in the free position and goes to next position
         *block = data_block_alloc();
@@ -148,21 +168,19 @@ int block_create(inode_t * inode, size_t mem){
     int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
     if (n_blocks >= 10)
         return block_create_indirect(inode, mem);
+
     while (n_blocks != 10 && mem > 0){
         if((inode -> i_data_block[n_blocks] = data_block_alloc()) == -1)
             return -1;
 
-        if (BLOCK_SIZE > mem) //P Bug corrigido: size_t não tem sinal. 4 - 1024 = 18446744073709550596 e não -1020
-            mem = 0;
-        else
-            mem -= BLOCK_SIZE;
-
+        sub_or_zero(mem, BLOCK_SIZE); //P Bug corrigido: size_t não tem sinal. 4 - 1024 = 18446744073709550596 e não -1020
         n_blocks++;
     }
     if (mem == 0)
         return 0;
-    if (block_create_indirect(inode,mem) == -1)
+    else if (block_create_indirect(inode,mem) == -1)
         return -1;
+
     return 0;
 }
 
@@ -198,10 +216,11 @@ int block_create(inode_t * inode, size_t mem){
 void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type){
     if (type == DIRECT)
         return data_block_get(inode -> i_data_block[n_blocks-1]);
-    return data_block_get(*(blocks_of_blocks + (n_blocks-1)));
+    else if (type == INDIRECT)
+        return data_block_get(*(blocks_of_blocks + (n_blocks-1)));
 }
 
-int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * n_blocks, size_t * to_write,int to_write_cpy,size_t* mem_available,size_t *buffer_offset,int type){
+int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *n_blocks, size_t *to_write, int to_write_cpy, size_t *mem_available, size_t *buffer_offset, int type){
     int * block_of_blocks = (int*) data_block_get(inode -> i_data_block[10]);
     void *block = get_next_block(block_of_blocks,inode,*n_blocks,type);
 
@@ -217,14 +236,18 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
     *buffer_offset += what_to_write;
     *to_write -= what_to_write;
     (*n_blocks)++; //P Bug: Tinhas *n_blocks++, estava a incrementar o pointer e não o conteúdo
+
     *block_offset = 0;
     *mem_available = 0; // nao me lembro porque fiz isto
     int value;
-    if (type == DIRECT) value = 10;
+
+    if (type == DIRECT)
+        value = 10;
     else if (type == INDIRECT){
         value = BLOCK_SIZE / sizeof(int);
         (*n_blocks)--;
     }
+
     while (*n_blocks <= value && *to_write > 0) {
         size_t what_to_write = min(*to_write, BLOCK_SIZE);
         void *block = get_next_block (block_of_blocks, inode,*n_blocks,type);
@@ -243,6 +266,8 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer,int * 
     }
     return 0;
 }
+
+
 size_t data_block_write(inode_t * inode, size_t offset, char const * buffer, size_t to_write){
     int n_blocks = ceil((double)offset/BLOCK_SIZE); //number of blocks used. We'll try to wrote on the last one if it has remaining space
     size_t to_write_cpy = to_write, block_offset  = offset % BLOCK_SIZE,buffer_offset = 0;
