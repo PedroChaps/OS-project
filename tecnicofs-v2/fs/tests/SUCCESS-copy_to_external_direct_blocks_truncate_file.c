@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SIZE_TO_TEST (1024*10)
+#define SIZE_TO_TEST (1024*22)
 
 int main() {
 
@@ -31,21 +31,22 @@ int main() {
 
 
     memset(big_str, 'y', sizeof(big_str));
+    big_str[SIZE_TO_TEST - 69] = '\0';
     memset(buffer, '\0', sizeof(buffer));
     memcpy(buffer, big_str, SIZE_TO_TEST);
 
 
-    tfs_file = tfs_open(path1, TFS_O_APPEND);
+    tfs_file = tfs_open(path1, TFS_O_TRUNC);
     assert(tfs_file != -1);
 
     assert(tfs_write(tfs_file, buffer, sizeof(buffer)) == sizeof(buffer));
 
 
-    assert(tfs_copy_to_external_fs(path2, pathDest) != -1);
+    assert(tfs_copy_to_external_fs(path1, pathDest) != -1);
 
     // read to copied file - to to_read - and compare it to to_write
 
-    FILE *fp = fopen(path2, "r");
+    FILE *fp = fopen(pathDest, "r");
 
     assert(fp != NULL);
 
@@ -53,7 +54,7 @@ int main() {
     
     assert(fclose(fp) != -1);
 
-    unlink(path2);
+    unlink(path1);
 
     printf("======> Successful test.\n\n");
 
