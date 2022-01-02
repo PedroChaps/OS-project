@@ -7,23 +7,10 @@
 #define DIRECT 0
 #define INDIRECT 1
 
+#define max(a, b) (a > b ? a : b)
+#define min(a, b) (a > b ? b : a)
+#define sub_or_zero(nr, toSub) (toSub > nr ? 0 : nr - toSub)
 
-int max(int a, int b){
-    int max = (a > b) ? a : b;
-    return max;
-}
-
-int min(int a, int b){
-    int min = (a > b) ? b : a;
-    return min;
-}
-
-int sub_or_zero(int nr, int toSub){
-    if (toSub > nr)
-        return 0;
-    else
-        return nr - toSub;
-}
 
 void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type);
 
@@ -82,32 +69,35 @@ int tfs_open(char const *name, int flags) {
             if (inode->i_size > 0) {
                 int n_blocks = (int) ceil((double) inode->i_size / BLOCK_SIZE), i;
 
-                for (i = 0; i < n_blocks && i <= 10; i++)
+                for (i = 0; i < n_blocks && i < 10; i++)
                     if (data_block_free(inode->i_data_block[i]) == -1)
                         return -1;
 
-                        if (n_blocks > 10) { // block of blocks to be fred
+                if (n_blocks > 10) { // block of blocks to be fred
+                    n_blocks -= 10;
+                    int *block_of_blocks = (int *) data_block_get(inode->i_data_block[10]);
 
-                            int *block_of_blocks = (int *) data_block_get(inode->i_data_block[10]);
+                    while (n_blocks != 0) {
+                        if (data_block_free(*block_of_blocks) == -1)
+                            return -1;
 
-                            while (*block_of_blocks != 0) {
-                                if (data_block_free(*block_of_blocks) == -1)
-                                    return -1;
-
-                                *block_of_blocks = 0;
-                                block_of_blocks++;
-                            }
-                        }
-
-                        inode->i_size = 0;
+                        block_of_blocks++;
+                        n_blocks--;
                     }
+
+                    if (data_block_free( inode->i_data_block[10]) == -1)
+                        return -1;
+                }
+
+                inode->i_size = 0;
             }
-            /* Determine initial offset */
-            if (flags & TFS_O_APPEND) {
-                offset = inode->i_size;
-            } else {
-                offset = 0;
-            }
+        }
+        /* Determine initial offset */
+        if (flags & TFS_O_APPEND) {
+            offset = inode->i_size;
+        } else {
+            offset = 0;
+        }
 
         } else if (flags & TFS_O_CREAT) {
             /* The file doesn't exist; the flags specify that it should be created */
@@ -158,7 +148,6 @@ int block_create_indirect(inode_t *inode, size_t mem){
         if (*block == -1)
             return -1;
         block++;
-        n_blocks_ind++;
         mem = sub_or_zero(mem, BLOCK_SIZE);
     }
     return 0;
@@ -173,7 +162,7 @@ int block_create(inode_t * inode, size_t mem){
         if((inode -> i_data_block[n_blocks] = data_block_alloc()) == -1)
             return -1;
 
-        sub_or_zero(mem, BLOCK_SIZE); //P Bug corrigido: size_t não tem sinal. 4 - 1024 = 18446744073709550596 e não -1020
+        mem = sub_or_zero(mem, BLOCK_SIZE); //P Bug corrigido: size_t não tem sinal. 4 - 1024 = 18446744073709550596 e não -1020
         n_blocks++;
     }
     if (mem == 0)
@@ -184,35 +173,7 @@ int block_create(inode_t * inode, size_t mem){
     return 0;
 }
 
-/*int data_block_write(inode_t * inode, size_t offset, const char * buffer, size_t to_write){ //o offset e sempre igual ao size
-    int data_block_counter = (int) ceil((double)offset/ BLOCK_SIZE);
-    if (data_block_counter <= 10){
-        size_t block_offset = offset % BLOCK_SIZE;
-        size_t mem_available = data_block_counter * BLOCK_SIZE - offset;
-        if (mem_available > 0) {
-            void *block =
-                data_block_get(inode->i_data_block[data_block_counter - 1]);
-            if (block == NULL)
-                return -1;
-            memcpy(block + block_offset, buffer, mem_available);
-        }
-        to_write -= mem_available;
-        data_block_counter ++;
-        while (data_block_counter < 11 && to_write > 0){
-            size_t what_to_write = to_write > BLOCK_SIZE ? BLOCK_SIZE : to_write;
-            void * block = data_block_get(inode -> i_data_block[data_block_counter-1]);
-            if ( block == NULL)
-                return -1;
-            memcpy(block,buffer,what_to_write);
-            if (what_to_write == to_write)
-                return 0;
-            to_write -= BLOCK_SIZE;
-            data_block_counter ++;
-        }
-        //escrever em endereçamento indireto
-    }
-}
-*/
+
 void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type){
     if (type == DIRECT)
         return data_block_get(inode -> i_data_block[n_blocks-1]);
@@ -506,16 +467,22 @@ int tfs_copy_to_external_fs(char const *source_path, char const *dest_path) {
 
     char *buffer = malloc(size + 1);
     int fh = add_to_open_file_table(inum, 0);
+
     tfs_read(fh, buffer, size);
     tfs_close(fh);
     FILE *f = fopen(dest_path, "w+");
+
     if (f == NULL)
         return -1;
-    int bytes_written = fwrite(buffer, sizeof(char), size,
-                               f);
-    if (bytes_written != size) return -1;
+
+    int bytes_written = fwrite(buffer, sizeof(char), size, f);
+
+    if (bytes_written != size)
+        return -1;
+
     fclose(f);
     free(buffer);
+
     return 0;
 }
 
