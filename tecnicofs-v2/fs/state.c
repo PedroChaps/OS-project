@@ -12,17 +12,22 @@
  * memory; for simplicity, this project maintains it in primary memory) */
 
 /* I-node table */
+static pthread_mutex_t inode_table_mutex;
 static inode_t inode_table[INODE_TABLE_SIZE];
 static char freeinode_ts[INODE_TABLE_SIZE];
+static pthread_mutex_t freeinode_lock; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
 
 /* Data blocks */
+static pthread_mutex_t fs_data_mutex[DATA_BLOCKS];
 static char fs_data[BLOCK_SIZE * DATA_BLOCKS];
 static char free_blocks[DATA_BLOCKS];
+static pthread_mutex_t data_block_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
 
 /* Volatile FS state */
 
 static open_file_entry_t open_file_table[MAX_OPEN_FILES];
 static char free_open_file_entries[MAX_OPEN_FILES];
+static pthread_mutex_t free_OF_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
 
 static inline bool valid_inumber(int inumber) {
     return inumber >= 0 && inumber < INODE_TABLE_SIZE;
@@ -67,17 +72,21 @@ static void insert_delay() {
  * Initializes FS state
  */
 void state_init() {
+    pthread_mutex_lock(&freeinode_lock); //not sure
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
         freeinode_ts[i] = FREE;
     }
-
+    pthread_mutex_unlock(&freeinode_lock); //not sure
+    pthread_mutex_lock(&data_block_mutex); //not sure
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
         free_blocks[i] = FREE;
     }
-
+    pthread_mutex_unlock(&data_block_mutex); //not sure
+    pthread_mutex_lock(&free_OF_mutex); //not sure
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         free_open_file_entries[i] = FREE;
     }
+    pthread_mutex_unlock(&free_OF_mutex); //not sure
 }
 
 void state_destroy() { /* nothing to do */
@@ -95,28 +104,32 @@ int inode_create(inode_type n_type) {
         if ((inumber * (int) sizeof(allocation_state_t) % BLOCK_SIZE) == 0) {
             insert_delay(); // simulate storage access delay (to freeinode_ts)
         }
-
+        pthread_mutex_lock(&freeinode_lock);
         /* Finds first free entry in i-node table */
         if (freeinode_ts[inumber] == FREE) {
             /* Found a free entry, so takes it for the new i-node*/
             freeinode_ts[inumber] = TAKEN;
             insert_delay(); // simulate storage access delay (to i-node)
+            pthread_mutex_lock(&inode_table_mutex);
             inode_table[inumber].i_node_type = n_type;
-
+            pthread_mutex_unlock(&inode_table_mutex);
             if (n_type == T_DIRECTORY) {
                 /* Initializes directory (filling its block with empty
                  * entries, labeled with inumber==-1) */
                 int b = data_block_alloc();
                 if (b == -1) {
+                    pthread_mutex_lock(&freeinode_lock);
                     freeinode_ts[inumber] = FREE;
+                    pthread_mutex_unlock(&freeinode_lock);
                     return -1;
                 }
-
+                pthread_mutex_lock(&inode_table_mutex);
                 inode_table[inumber].i_size = BLOCK_SIZE;
                 inode_table[inumber].i_data_block[0]= b;
+                pthread_mutex_unlock(&inode_table_mutex);
 
                 dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
-                if (dir_entry == NULL) {
+                if (dir_entry == NULL) {     //FIXME POR FAZER DA LINHA 131 À 139 MAS A PARTIDA NAO E PRECISO PORQUE SO HA UMA DIRETORIA QUE E A RAIZ
                     freeinode_ts[inumber] = FREE;
                     return -1;
                 }
@@ -125,11 +138,15 @@ int inode_create(inode_type n_type) {
                     dir_entry[i].d_inumber = -1;
                 }
             } else {
+                pthread_mutex_lock(&inode_table_mutex);
                 /* In case of a new file, simply sets its size to 0 */
                 inode_table[inumber].i_size = 0;
+                pthread_mutex_unlock(&inode_table_mutex);
             }
+            pthread_mutex_unlock(&freeinode_lock);
             return inumber;
         }
+        pthread_mutex_unlock(&freeinode_lock);
     }
     return -1;
 }
@@ -258,11 +275,13 @@ int data_block_alloc() {
         if (i * (int) sizeof(allocation_state_t) % BLOCK_SIZE == 0) {
             insert_delay(); // simulate storage access delay to free_blocks
         }
-
+        pthread_mutex_lock(&data_block_mutex);
         if (free_blocks[i] == FREE) {
             free_blocks[i] = TAKEN;
+            pthread_mutex_unlock(&data_block_mutex);
             return i;
         }
+        pthread_mutex_unlock(&data_block_mutex);
     }
     return -1;
 }
