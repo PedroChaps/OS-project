@@ -17,7 +17,6 @@ void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_block
 
 int tfs_init() {
     state_init();
-
     /* create root inode */
     int root = inode_create(T_DIRECTORY);
     if (root != ROOT_DIR_INUM) {
