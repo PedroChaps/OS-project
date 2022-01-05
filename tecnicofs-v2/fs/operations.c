@@ -15,7 +15,7 @@
 
 void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_blocks, int type);
 
-int tfs_init() {
+int tfs_init() { //TODO INICIALIZAR MUTEXES
     state_init();
     /* create root inode */
     int root = inode_create(T_DIRECTORY);
@@ -65,28 +65,35 @@ int tfs_open(char const *name, int flags) {
         }
 
         /* Trucate (if requested) */
+        pthread_mutex_lock(&(inode->mutex));
         if (flags & TFS_O_TRUNC) {
             if (inode->i_size > 0) {
                 int n_blocks = (int) ceil((double) inode->i_size / BLOCK_SIZE), i;
 
                 for (i = 0; i < n_blocks && i < 10; i++)
-                    if (data_block_free(inode->i_data_block[i]) == -1)
+                    if (data_block_free(inode->i_data_block[i]) == -1) {
+                        pthread_mutex_unlock(&inode->mutex);
                         return -1;
+                    }
 
                 if (n_blocks > 10) { // block of blocks to be fred
                     n_blocks -= 10;
                     int *block_of_blocks = (int *) data_block_get(inode->i_data_block[10]);
 
                     while (n_blocks != 0) {
-                        if (data_block_free(*block_of_blocks) == -1)
+                        if (data_block_free(*block_of_blocks) == -1) {
+                            pthread_mutex_unlock(&inode->mutex);
                             return -1;
+                        }
 
                         block_of_blocks++;
                         n_blocks--;
                     }
 
-                    if (data_block_free( inode->i_data_block[10]) == -1)
+                    if (data_block_free( inode->i_data_block[10]) == -1) {
+                        pthread_mutex_unlock(&inode->mutex);
                         return -1;
+                    }
                 }
 
                 inode->i_size = 0;
@@ -95,11 +102,14 @@ int tfs_open(char const *name, int flags) {
         /* Determine initial offset */
         if (flags & TFS_O_APPEND) {
             offset = inode->i_size;
-        } else {
+        }
+        else {
             offset = 0;
         }
+        pthread_mutex_unlock(&inode->mutex);
+    }
 
-        } else if (flags & TFS_O_CREAT) {
+    else if (flags & TFS_O_CREAT) {
             /* The file doesn't exist; the flags specify that it should be created */
             /* Create inode */
             inum = inode_create(T_FILE);
@@ -181,7 +191,7 @@ void * get_next_block(int const * blocks_of_blocks, inode_t * inode, int n_block
         return data_block_get(*(blocks_of_blocks + (n_blocks-1)));
 }
 
-int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *n_blocks, size_t *to_write, int to_write_cpy, size_t *mem_available, size_t *buffer_offset, int type){
+int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *n_blocks, size_t *to_write, size_t to_write_cpy, size_t *mem_available, size_t *buffer_offset, int type){
     int * block_of_blocks = (int*) data_block_get(inode -> i_data_block[10]);
     void *block = get_next_block(block_of_blocks,inode,*n_blocks,type);
 
@@ -270,17 +280,23 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     }
 
     /* From the open file table entry, we get the inode */
+    pthread_mutex_lock(&file->mutex);
     inode_t *inode = inode_get(file->of_inumber);
     if (inode == NULL) {
+        pthread_mutex_unlock(&file ->mutex);
         return -1;
     }
 
     /*get available memory*/
+    pthread_mutex_lock(&inode->mutex);
     int n_blocks = (int) ceil((double)inode -> i_size/ BLOCK_SIZE);
     size_t  mem_available = n_blocks*BLOCK_SIZE - inode -> i_size;
     if (to_write > mem_available){
-        if (block_create(inode, to_write - mem_available) == -1)
+        if (block_create(inode, to_write - mem_available) == -1) {
+            pthread_mutex_unlock(&inode->mutex);
+            pthread_mutex_unlock(&file->mutex);
             return -1;
+        }
     }
 
     if (to_write > 0) {
@@ -294,6 +310,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             inode->i_size = file->of_offset;
         }
     }
+    pthread_mutex_unlock(&inode->mutex);
+    pthread_mutex_unlock(&file-> mutex);
 
     return (ssize_t)to_write;
 }
@@ -336,8 +354,6 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
     if (n_blocks <= 10) {
 
         if (block_offset != 0 ) {
-            pthread_mutex_lock(&(inode->mutex));
-            int block_number = inode -> i_data_block[n_blocks-1];
             void *block = data_block_get(inode->i_data_block[n_blocks - 1]);
 
             if (block == NULL)
@@ -418,29 +434,26 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (file == NULL) {
         return -1;
     }
-
     /* From the open file table entry, we get the inode */
     pthread_mutex_lock(&(file->mutex));
     inode_t *inode = inode_get(file->of_inumber);
-    pthread_mutex_unlock(&(file->mutex));
     if (inode == NULL) {
+        pthread_mutex_unlock(&file->mutex);
         return -1;
     }
+
     /* Determine how many bytes to read */
     pthread_mutex_lock(&(inode->mutex));
     size_t to_read = inode->i_size - file->of_offset;
-    pthread_mutex_unlock(&(inode->mutex));
     if (to_read > len) {
         to_read = len;
     }
-    pthread_mutex_lock(&(file->mutex));
     size_t offset = file -> of_offset;
-    pthread_mutex_unlock(&(file->mutex));
     /* Perform the actual read */
-    data_block_read(buffer,inode,offset, to_read); //FIXME O MUTEX VAI SER LOCKED DENTRO DA FUNCAO
+    data_block_read(buffer,inode,offset, to_read); //FIXME O O MUTEX E LOCKED FORA DA FUNCAO
+    pthread_mutex_unlock(&inode->mutex);
     /* The offset associated with the file handle is
      * incremented accordingly */
-    pthread_mutex_lock(&(file->mutex));
     file->of_offset += to_read;
     pthread_mutex_unlock(&(file->mutex));
 

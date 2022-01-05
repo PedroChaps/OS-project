@@ -69,6 +69,14 @@ static void insert_delay() {
  * Initializes FS state
  */
 void state_init() {
+    pthread_mutex_init(&freeinode_mutex,NULL);
+    pthread_mutex_init(&free_OF_mutex,NULL);
+    pthread_mutex_init(&free_blocks_mutex,NULL);
+    for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
+        pthread_mutex_init(&inode_table[ix].mutex,NULL);
+    }
+    for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
+        pthread_mutex_init(&open_file_table[ix].mutex,NULL);
     pthread_mutex_lock(&freeinode_mutex); //not sure
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
         freeinode_ts[i] = FREE;
@@ -87,6 +95,18 @@ void state_init() {
 }
 
 void state_destroy() { /* nothing to do */
+    pthread_mutex_destroy(&freeinode_mutex);
+    pthread_mutex_destroy(&free_OF_mutex);
+    pthread_mutex_destroy(&free_blocks_mutex);
+    for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
+        pthread_mutex_destroy(&inode_table[ix].mutex);
+    }
+    for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
+        pthread_mutex_destroy(&open_file_table[ix].mutex);
+
+    dir_entry_t * erase = (dir_entry_t *) data_block_get(inode_table[ROOT_DIR_INUM].i_data_block[0]);
+    for (int ix = 0; ix < BLOCK_SIZE; ix++)
+        pthread_mutex_destroy(&erase[ix].mutex);
 }
 
 /*
@@ -130,8 +150,10 @@ int inode_create(inode_type n_type) {
                 }
 
                 for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
+                    pthread_mutex_init(&dir_entry[i].mutex,NULL);
                     pthread_mutex_lock(&dir_entry[i].mutex);
                     dir_entry[i].d_inumber = -1;
+                    pthread_mutex_unlock(&dir_entry[i].mutex);
                 }
             }
             else {
