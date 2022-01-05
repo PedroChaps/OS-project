@@ -329,13 +329,15 @@ int block_read(){
 */
 
 size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read){ //a ideia e saber onde comecar a ler e ler ate ao fim de cada bloco e se chegarmos ao 10 temos de ler indiretamente
-    int n_blocks = (offset == 0) ? 1 : ceil((double)offset/BLOCK_SIZE); //P Bug: Se offset = 0, n_blocks seria 0 e farias i_data_block[n_blocks-1] = i_data_block[-1] = BOOM //FIXME NAO TA NADA MAL MAS NAO ESQUECER QUE TEMOS DE LER PARA BUFFER + QQL COISA SENAO ESCREVEMOS ME CIMA DO QUE JA LA TAVA
+    int n_blocks = (offset == 0) ? 1 :(int) ceil((double)offset/BLOCK_SIZE); //P Bug: Se offset = 0, n_blocks seria 0 e farias i_data_block[n_blocks-1] = i_data_block[-1] = BOOM //FIXME NAO TA NADA MAL MAS NAO ESQUECER QUE TEMOS DE LER PARA BUFFER + QQL COISA SENAO ESCREVEMOS ME CIMA DO QUE JA LA TAVA
     size_t block_offset = offset % BLOCK_SIZE;
     size_t buffer_offset = 0,to_read_cpy = to_read;
-
+//FIXME MUITO IMPORTANTE : O INODE E O FILE JA FORAM LOCKED NO CONTEXTO ONDE ESTA FUNCAO FOI CHAMADA (QUE É UNICO)
     if (n_blocks <= 10) {
 
         if (block_offset != 0 ) {
+            pthread_mutex_lock(&(inode->mutex));
+            int block_number = inode -> i_data_block[n_blocks-1];
             void *block = data_block_get(inode->i_data_block[n_blocks - 1]);
 
             if (block == NULL)
@@ -393,11 +395,11 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
     }
 
     while (to_read >= 0){
-        void * block = data_block_get(*(block_of_blocks + n_blocks - 1));
+        void * block1 = data_block_get(*(block_of_blocks + n_blocks - 1));
         n_blocks++;
 
         size_t what_to_read = to_read > BLOCK_SIZE ? BLOCK_SIZE : to_read;
-        memcpy(buffer + buffer_offset,block,what_to_read);
+        memcpy(buffer + buffer_offset,block1,what_to_read);
 
         buffer_offset += what_to_read;
 
@@ -418,23 +420,29 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     }
 
     /* From the open file table entry, we get the inode */
+    pthread_mutex_lock(&(file->mutex));
     inode_t *inode = inode_get(file->of_inumber);
+    pthread_mutex_unlock(&(file->mutex));
     if (inode == NULL) {
         return -1;
     }
-
     /* Determine how many bytes to read */
+    pthread_mutex_lock(&(inode->mutex));
     size_t to_read = inode->i_size - file->of_offset;
+    pthread_mutex_unlock(&(inode->mutex));
     if (to_read > len) {
         to_read = len;
     }
-
+    pthread_mutex_lock(&(file->mutex));
+    size_t offset = file -> of_offset;
+    pthread_mutex_unlock(&(file->mutex));
     /* Perform the actual read */
-    data_block_read(buffer,inode,file -> of_offset, to_read); //FIXME FAZER ESTA FUNCAO
-    //memcpy(buffer, block + file->of_offset, to_read);
+    data_block_read(buffer,inode,offset, to_read); //FIXME O MUTEX VAI SER LOCKED DENTRO DA FUNCAO
     /* The offset associated with the file handle is
      * incremented accordingly */
+    pthread_mutex_lock(&(file->mutex));
     file->of_offset += to_read;
+    pthread_mutex_unlock(&(file->mutex));
 
 
     return (ssize_t)to_read;
@@ -475,7 +483,7 @@ int tfs_copy_to_external_fs(char const *source_path, char const *dest_path) {
     if (f == NULL)
         return -1;
 
-    int bytes_written = fwrite(buffer, sizeof(char), size, f);
+     size_t bytes_written = fwrite(buffer, sizeof(char), size, f);
 
     if (bytes_written != size)
         return -1;

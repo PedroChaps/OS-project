@@ -159,22 +159,23 @@ int inode_delete(int inumber) {
     insert_delay();
     pthread_mutex_lock(&freeinode_mutex);
     if (!valid_inumber(inumber) || freeinode_ts[inumber] == FREE) {
+        pthread_mutex_unlock(&freeinode_mutex);
         return -1;
     }
 
     freeinode_ts[inumber] = FREE;
     pthread_mutex_unlock(&freeinode_mutex);
-    inode_t inode = inode_table[inumber];
-    pthread_mutex_lock(&inode.mutex);
-    if (inode.i_size > 0) {
-        int n_blocks = (int) ceil((double)inode.i_size/ BLOCK_SIZE);
+    inode_t * inode = &inode_table[inumber];
+    pthread_mutex_lock(&(inode->mutex));
+    if (inode->i_size > 0) {
+        int n_blocks = (int) ceil((double)inode->i_size/ BLOCK_SIZE);
         int min = n_blocks <=  10 ? n_blocks : 10;
         for (int ix = 0; ix < min; ix++)
-            if (data_block_free(inode.i_data_block[ix]) == -1)
+            if (data_block_free(inode->i_data_block[ix]) == -1)
                 return -1;
         n_blocks -= 10;
         if (n_blocks > 0){
-            int * block_of_blocks = (int*) data_block_get(inode.i_data_block[10]);
+            int * block_of_blocks = (int*) data_block_get(inode->i_data_block[10]);
             while (n_blocks != 0) {
                 if (data_block_free((block_of_blocks[n_blocks - 1])) == -1)
                     return -1;
@@ -182,7 +183,7 @@ int inode_delete(int inumber) {
             }
         }
     }
-    pthread_mutex_unlock(&inode.mutex);
+    pthread_mutex_unlock(&(inode->mutex));
     return 0;
 }
 
@@ -215,9 +216,12 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
     }
 
     insert_delay(); // simulate storage access delay to i-node with inumber
+    pthread_mutex_lock(&inode_table[inumber].mutex);
     if (inode_table[inumber].i_node_type != T_DIRECTORY) {
+        pthread_mutex_unlock(&inode_table[inumber].mutex);
         return -1;
     }
+    pthread_mutex_unlock(&inode_table[inumber].mutex);
 
     if (strlen(sub_name) == 0) {
         return -1;
@@ -256,13 +260,14 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
  */
 int find_in_dir(int inumber, char const *sub_name) {
     insert_delay(); // simulate storage access delay to i-node with inumber
+    pthread_mutex_lock(&inode_table[inumber].mutex);
     if (!valid_inumber(inumber) ||
         inode_table[inumber].i_node_type != T_DIRECTORY) { //FIXME ACHO QUE NAO E PRECISO MUTEX AQUI
+        pthread_mutex_unlock(&inode_table[inumber].mutex);
         return -1;
     }
 
     /* Locates the block containing the directory's entries */
-    pthread_mutex_lock(&inode_table[inumber].mutex);
     dir_entry_t *dir_entry =
         (dir_entry_t *)data_block_get(inode_table[inumber].i_data_block[0]); //FIXME DUVIDA : AQUI, POR EXEMPLO, PRECISO DE POR O MUTEX DA INODE TABLE?
     pthread_mutex_unlock(&inode_table[inumber].mutex);
