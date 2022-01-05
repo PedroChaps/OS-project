@@ -17,7 +17,6 @@ static char freeinode_ts[INODE_TABLE_SIZE];
 static pthread_mutex_t freeinode_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
 
 /* Data blocks */
-static pthread_mutex_t fs_data_mutex[DATA_BLOCKS];
 static char fs_data[BLOCK_SIZE * DATA_BLOCKS];
 static char free_blocks[DATA_BLOCKS];
 static pthread_mutex_t free_blocks_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
