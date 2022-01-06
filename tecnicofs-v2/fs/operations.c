@@ -150,16 +150,18 @@ int block_create_indirect(inode_t *inode, size_t mem){
     if (block == NULL)
         return -1;
 
-    block += n_blocks_ind; // Set the pointer to the next free block position
-
-    while (mem > 0){
+    //block += n_blocks_ind; // Set the pointer to the next free block position
+    int max_possible_blocks = (int) floor((double)BLOCK_SIZE/sizeof(int));
+    while (mem > 0 && n_blocks_ind < max_possible_blocks){
         // Allocs a block in the free position and goes to next position
-        *block = data_block_alloc();
-        if (*block == -1)
+        *(block + n_blocks_ind)= data_block_alloc();
+        if (*(block+n_blocks_ind) == -1)
             return -1;
-        block++;
+        n_blocks_ind++;
         mem = sub_or_zero(mem, BLOCK_SIZE);
     }
+    if(mem != 0)
+        return -1;
     return 0;
 }
 
@@ -215,7 +217,7 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *
     if (type == DIRECT)
         value = 10;
     else if (type == INDIRECT){
-        value = BLOCK_SIZE / sizeof(int);
+        value = (int)floor((double)BLOCK_SIZE / sizeof(int));
         (*n_blocks)--;
     }
 

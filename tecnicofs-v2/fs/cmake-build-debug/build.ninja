@@ -74,21 +74,21 @@ build cmake_object_order_depends_target_fs: phony || CMakeFiles/fs.dir
 
 build CMakeFiles/fs.dir/operations.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/operations.c || cmake_object_order_depends_target_fs
   DEP_FILE = CMakeFiles/fs.dir/operations.c.o.d
-  FLAGS = -g -std=gnu11
+  FLAGS = -pthread -g -std=gnu11
   INCLUDES = -I/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/.
   OBJECT_DIR = CMakeFiles/fs.dir
   OBJECT_FILE_DIR = CMakeFiles/fs.dir
 
 build CMakeFiles/fs.dir/state.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/state.c || cmake_object_order_depends_target_fs
   DEP_FILE = CMakeFiles/fs.dir/state.c.o.d
-  FLAGS = -g -std=gnu11
+  FLAGS = -pthread -g -std=gnu11
   INCLUDES = -I/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/.
   OBJECT_DIR = CMakeFiles/fs.dir
   OBJECT_FILE_DIR = CMakeFiles/fs.dir
 
-build CMakeFiles/fs.dir/tests/TR_write_w_muktiple_threads.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/TR_write_w_muktiple_threads.c || cmake_object_order_depends_target_fs
-  DEP_FILE = CMakeFiles/fs.dir/tests/TR_write_w_muktiple_threads.c.o.d
-  FLAGS = -g -std=gnu11
+build CMakeFiles/fs.dir/tests/corrigir_erro_mais_de_11_blocos.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/corrigir_erro_mais_de_11_blocos.c || cmake_object_order_depends_target_fs
+  DEP_FILE = CMakeFiles/fs.dir/tests/corrigir_erro_mais_de_11_blocos.c.o.d
+  FLAGS = -pthread -g -std=gnu11
   INCLUDES = -I/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/.
   OBJECT_DIR = CMakeFiles/fs.dir
   OBJECT_FILE_DIR = CMakeFiles/fs.dir/tests
@@ -101,8 +101,8 @@ build CMakeFiles/fs.dir/tests/TR_write_w_muktiple_threads.c.o: C_COMPILER__fs_De
 #############################################
 # Link the executable fs
 
-build fs: C_EXECUTABLE_LINKER__fs_Debug CMakeFiles/fs.dir/operations.c.o CMakeFiles/fs.dir/state.c.o CMakeFiles/fs.dir/tests/TR_write_w_muktiple_threads.c.o
-  FLAGS = -g
+build fs: C_EXECUTABLE_LINKER__fs_Debug CMakeFiles/fs.dir/operations.c.o CMakeFiles/fs.dir/state.c.o CMakeFiles/fs.dir/tests/corrigir_erro_mais_de_11_blocos.c.o
+  FLAGS = -pthread -g
   LINK_LIBRARIES = -lm
   OBJECT_DIR = CMakeFiles/fs.dir
   POST_BUILD = :
