@@ -4,8 +4,8 @@
 #include <pthread.h>
 
 #define COUNT 80
-#define SIZE 4
-#define N_THREADS 300
+#define SIZE 26
+#define N_THREADS 8000
 
 /**
    This test uses multiple threads to write on the same file (and same fh) and checks whether the result was the correct one
@@ -31,10 +31,18 @@ int main() {
     /* Writing this buffer multiple times to a file stored on 1KB blocks will 
        always hit a single block (since 1KB is a multiple of SIZE=256) */
     char input[SIZE+1];
-    char write[SIZE] = "ABCD";
+    char write[SIZE+1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
     strcpy(input, write);
 
     char output [SIZE * N_THREADS + 1];
+
+    int of = 0;
+    for (int ix = 0;ix<N_THREADS;ix++){
+        memcpy(output + of,write,SIZE);
+        of+= SIZE;
+    }
+    output[of] = '\0';
+
     char *myoutput = (char*)malloc(sizeof(char)*(SIZE*N_THREADS+1));
 
     assert(tfs_init() != -1);
@@ -57,17 +65,17 @@ int main() {
         pthread_join(threads[ix],NULL);
     }
 
-    int of = 0;
-    for (int ix = 0;ix<N_THREADS;ix++){
-        memcpy(output + of,write,SIZE);
-        of+= SIZE;
-    }
-    output[of] = '\0';
+    assert(tfs_close(fd) != -1);
 
-    int res = tfs_read(fd,myoutput,SIZE*N_THREADS+1);
-    assert(res == SIZE*N_THREADS+1);
+    fd = tfs_open(path,0);
+    assert(fd !=-1);
 
-    assert(strcmp(output,myoutput) == 0);
+    int res = tfs_read(fd, myoutput,SIZE*N_THREADS);
+    assert(res == SIZE*N_THREADS);
+
+    int cmp_val = strcmp(output,myoutput);
+    //printf("%s", output);
+    printf("%s", myoutput);
     free(myoutput);
 
     printf("Sucessful test\n");
