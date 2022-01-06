@@ -3,7 +3,7 @@ project(fs C)
 
 set(CMAKE_C_STANDARD 11)
 set(GCC_COVERAGE_COMPILE_FLAGS "-lm")
-
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
 
 include_directories(.)
 

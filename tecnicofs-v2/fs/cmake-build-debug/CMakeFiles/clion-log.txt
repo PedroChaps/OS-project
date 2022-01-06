@@ -1,4 +1,4 @@
-/snap/clion/178/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/snap/clion/178/bin/ninja/linux/ninja -G Ninja /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs
+/home/ch4ps/.local/share/JetBrains/Toolbox/apps/CLion/ch-0/211.7442.42/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -G "CodeBlocks - Unix Makefiles" /home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs
 -- Configuring done
 -- Generating done
--- Build files have been written to: /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/cmake-build-debug
+-- Build files have been written to: /home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs/cmake-build-debug

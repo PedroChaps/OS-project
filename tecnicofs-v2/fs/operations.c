@@ -444,7 +444,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Determine how many bytes to read */
     pthread_mutex_lock(&(inode->mutex));
-    size_t to_read = inode->i_size - file->of_offset;
+    size_t to_read = inode->i_size - file->of_offset; //
     if (to_read > len) {
         to_read = len;
     }
