@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/teste_pthreads.c)
+        tests/TR_write_w_muktiple_threads.c)
 
 target_link_libraries(fs PRIVATE m)
