@@ -72,6 +72,9 @@ void state_init() {
     pthread_mutex_init(&freeinode_mutex,NULL);
     pthread_mutex_init(&free_OF_mutex,NULL);
     pthread_mutex_init(&free_blocks_mutex,NULL);
+    for (int ix = 0; ix < BLOCK_SIZE * DATA_BLOCKS; ix++ ){ //TODO Remover este ciclo
+        fs_data[ix] = FREE;
+    }
     for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
         pthread_mutex_init(&inode_table[ix].mutex,NULL);
     }
@@ -362,7 +365,7 @@ void *data_block_get(int block_number) {
     insert_delay(); // simulate storage access delay to block
     //pthread_mutex_lock(&fs_data_mutex[block_number]);
     //FIXME ACHO QUE NAO E PRECISO MUTEX ANTES DO IF BUT NOT SURE
-    void * res = &fs_data[BLOCK_SIZE * block_number];
+    void * res = &fs_data[BLOCK_SIZE * block_number]; //printf("block nr = %d", block_number);
     //pthread_mutex_unlock(&fs_data_mutex[block_number]);
     return res;
 }

@@ -214,11 +214,17 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *
     *mem_available = 0; // nao me lembro porque fiz isto
     int value;
 
+    if (*n_blocks == 11){
+        *n_blocks -= 10;
+        type = INDIRECT;
+    }
+
+
     if (type == DIRECT)
         value = 10;
     else if (type == INDIRECT){
         value = (int)floor((double)BLOCK_SIZE / sizeof(int));
-        (*n_blocks)--;
+        //(*n_blocks)--;
     }
 
     while (*n_blocks <= value && *to_write > 0) {
@@ -292,7 +298,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     /*get available memory*/
     pthread_mutex_lock(&inode->mutex);
     int n_blocks = (int) ceil((double)inode -> i_size/ BLOCK_SIZE);
-    size_t  mem_available = n_blocks*BLOCK_SIZE - inode -> i_size;
+    size_t  mem_available = n_blocks*BLOCK_SIZE - inode->i_size;
     if (to_write > mem_available){
         if (block_create(inode, to_write - mem_available) == -1) {
             pthread_mutex_unlock(&inode->mutex);
@@ -394,12 +400,12 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
     if (block_of_blocks == NULL)
         return -1;
 
-    void * block = data_block_get(*(block_of_blocks + n_blocks - 1));
+    void *block = data_block_get(*(block_of_blocks + n_blocks-1));
 
     if (block == NULL)
         return -1;
 
-    if (block_offset != 0 ) {
+    if (block_offset != 0) {
         size_t what_to_read = to_read > BLOCK_SIZE - block_offset ? BLOCK_SIZE- block_offset : to_read;
         memcpy(buffer + buffer_offset, block + block_offset, what_to_read); //FIXME VER SE O QUE E PARA LER E MENOR QUE ESTE VALOR
         buffer_offset += what_to_read;
@@ -413,7 +419,7 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
     }
 
     while (to_read >= 0){
-        void * block1 = data_block_get(*(block_of_blocks + n_blocks - 1));
+        void * block1 = data_block_get(*(block_of_blocks + n_blocks-1));
         n_blocks++;
 
         size_t what_to_read = to_read > BLOCK_SIZE ? BLOCK_SIZE : to_read;
@@ -424,7 +430,7 @@ size_t data_block_read(void * buffer,inode_t *inode,size_t offset,size_t to_read
         if(what_to_read == to_read)
             return to_read_cpy;
 
-        to_read-= what_to_read;
+        to_read -= what_to_read;
     }
 
     return -1;
@@ -450,7 +456,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     if (to_read > len) {
         to_read = len;
     }
-    size_t offset = file -> of_offset;
+    size_t offset = file->of_offset;
     /* Perform the actual read */
     data_block_read(buffer,inode,offset, to_read); //FIXME O O MUTEX E LOCKED FORA DA FUNCAO
     pthread_mutex_unlock(&inode->mutex);
