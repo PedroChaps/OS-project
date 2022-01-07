@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/erro_mais_de_11_blocos_sem_threads.c)
+        tests/TR_write_w_muktiple_threads.c)
 
 target_link_libraries(fs PRIVATE m)

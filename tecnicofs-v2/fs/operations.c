@@ -214,7 +214,7 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *
     *mem_available = 0; // nao me lembro porque fiz isto
     int value;
 
-    if (*n_blocks == 11){
+    if (*n_blocks == 11 && type == DIRECT){
         *n_blocks -= 10;
         type = INDIRECT;
     }

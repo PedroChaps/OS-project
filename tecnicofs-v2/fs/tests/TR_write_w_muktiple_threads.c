@@ -5,7 +5,7 @@
 
 #define COUNT 80
 #define SIZE 26
-#define N_THREADS 450
+#define N_THREADS 10450
 
 /**
    This test uses multiple threads to write on the same file (and same fh) and checks whether the result was the correct one
@@ -56,14 +56,14 @@ int main() {
     s->fh = fd;
 
     for (int ix = 0; ix< N_THREADS; ix++) {
-        //int suc = pthread_create(&threads[ix], NULL, fn, (void *) s);
-        tfs_write(fd,input,SIZE);
-        //assert(suc == 0);
+        int suc = pthread_create(&threads[ix], NULL, fn, (void *) s);
+        //tfs_write(fd,input,SIZE);
+        assert(suc == 0);
     }
 
-    //for (int ix = 0; ix < N_THREADS; ix++){
-      //  pthread_join(threads[ix],NULL);
-    //}
+    for (int ix = 0; ix < N_THREADS; ix++){
+        pthread_join(threads[ix],NULL);
+    }
 
     assert(tfs_close(fd) != -1);
 
@@ -74,13 +74,15 @@ int main() {
     assert(res == SIZE*N_THREADS);
     myoutput[res] = '\0';
     int a =strlen(output),b = strlen(myoutput);
-    //assert(a == b);
+    assert(a == b);
+    /*
     for(int ix= 0; ix<b;ix++){
         if(output[ix]!=myoutput[ix]) {
             printf("%d\n", ix);
             break;
         }
     }
+    */
     /*for(int ix = 10; ix>=0;ix--)
         printf("%c  %c\n",output[10240-ix],myoutput[10240- ix]);
     for(int ix = 1; ix<=10;ix++)

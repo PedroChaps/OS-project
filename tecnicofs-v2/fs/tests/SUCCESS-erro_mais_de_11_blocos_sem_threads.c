@@ -6,18 +6,8 @@
 #define COUNT 80
 #define SIZE 26
 #define N_THREADS 8000
-#define N_WRITES 8000
+#define N_WRITES 10477
 
-// 433 writes ele consegue, 434 ele não consegue
-
-// 433 * 26 = 11258 bytes, 434 * 26 = 11284 bytes
-
-// O nosso output não consegue passar dos 11264 bytes, idk why.
-
-
-// fs_data[11262] = 'U'
-// fs_data[11263] = 'V'
-// fs_data[11264] = '\f'
 
 /**
    This test uses multiple threads to write on the same file (and same fh) and checks whether the result was the correct one
