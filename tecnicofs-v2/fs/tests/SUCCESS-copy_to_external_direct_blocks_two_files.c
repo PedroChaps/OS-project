@@ -3,7 +3,7 @@
 #include <string.h>
 #include <unistd.h>
 
-#define SIZE_TO_TEST (1024*22)
+#define SIZE_TO_TEST (1024*40+1)
 
 int main() {
 
@@ -19,7 +19,6 @@ int main() {
     printf("Size to test = %ld\n", sizeof(buffer));
 
     memset(buffer, '\0', sizeof(buffer));
-
     memcpy(buffer, big_str, SIZE_TO_TEST);
 
     assert(tfs_init() != -1);

@@ -143,7 +143,7 @@ int block_create_indirect(inode_t *inode, size_t mem){
     int n_blocks_ind = max(n_blocks - 10, 0); // if n_blocks becomes negative, set it to 0
 
     if (n_blocks_ind == 0)
-        if((inode -> i_data_block[10] = data_block_alloc()) == -1) // if 0, it means the indirect block wasn't created yet
+        if((inode->i_data_block[10] = data_block_alloc()) == -1) // if 0, it means the indirect block wasn't created yet
             return -1;
 
     int * block = (int*) data_block_get(inode ->i_data_block[10]);
@@ -254,6 +254,7 @@ size_t data_block_write(inode_t * inode, size_t offset, char const * buffer, siz
     if (block_offset == 0){ //if the block offset is 0, it means it does not have any remaining space, so we need to write on the next one
         n_blocks++;
     }
+    // 10240 + 1
     size_t mem_available = BLOCK_SIZE - block_offset; //the memory available to write on the last block
     if (n_blocks <= 10) {
         int res = block_write(inode,&block_offset,buffer,&n_blocks,&to_write,to_write_cpy,&mem_available,&buffer_offset,DIRECT);
@@ -263,6 +264,8 @@ size_t data_block_write(inode_t * inode, size_t offset, char const * buffer, siz
 
         else if(res == to_write_cpy)
             return to_write_cpy;
+
+        mem_available = BLOCK_SIZE; // if didn't return, it filled last block and is going to the indirect blocks. So mem_available is the whole next block
     }
     //escrever indiretamente
     n_blocks -= 10;
