@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/TR_read_w_multiple_threads.c)
+        tests/TR_create_different_files.c)
 
 target_link_libraries(fs PRIVATE m)
