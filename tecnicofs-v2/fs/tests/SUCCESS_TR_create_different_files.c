@@ -5,8 +5,7 @@
 #include <unistd.h>
 #define COUNT 80
 #define SIZE 26
-#define N_THREADS 2 //max = 10476
-//erro : ta a criar 2 ficheiros c o nome f1 nao sei pq
+#define N_THREADS 20 //max = 20 : no pior caso as threads abrem todas o ficheiro antes de alguma a fechar, a tablea de ficheiros abertos so têm  20 entradas
 /**
    This test writes on a file and uses multiple threads to read the same file (and same fh) and checks whether the result was the correct one
  */
@@ -24,12 +23,16 @@ int main() {
     pthread_t threads[N_THREADS];
     assert(tfs_init() != -1);
 
+    char arg [N_THREADS][4];
+    for(int i = 0; i< N_THREADS; i++){
+        arg[i][0] = '/';
+        arg[i][1] = 'f';
+        arg[i][2] = i + 1 + '0';
+        arg[i][3] = '\0';
 
-    char arg[4] = "/f";
-    arg[3] = '\0';
+    }
     for (int i = 0; i < N_THREADS; i++) {
-        arg[2] = i + '0';
-        int suc = pthread_create(&threads[i], NULL, fn, (void *) arg);
+        int suc = pthread_create(&threads[i], NULL, fn, (void *) arg[i]);
         assert(suc == 0);
     }
     sleep(1);
@@ -38,10 +41,9 @@ int main() {
     }
 
     for (int i = 0; i < N_THREADS; i++) {
-        arg[2] = i + '0';
-        int fd = tfs_open(arg, 0);
-        //assert(fd != -1);
-        //assert(tfs_close(fd) != -1);
+        int fd = tfs_open(arg[i], 0);
+        assert(fd != -1); //se conseguir abrir com esta flag, quer dizer que o ficheiro existe
+        assert(tfs_close(fd) != -1);
     }
 
     printf("Sucessful test\n");

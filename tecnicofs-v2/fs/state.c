@@ -26,6 +26,8 @@ static open_file_entry_t open_file_table[MAX_OPEN_FILES];
 static char free_open_file_entries[MAX_OPEN_FILES];
 static pthread_mutex_t free_OF_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
 
+pthread_mutex_t directory_mutex;
+
 static inline bool valid_inumber(int inumber) {
     return inumber >= 0 && inumber < INODE_TABLE_SIZE;
 }
@@ -72,6 +74,7 @@ void state_init() {
     pthread_mutex_init(&freeinode_mutex,NULL);
     pthread_mutex_init(&free_OF_mutex,NULL);
     pthread_mutex_init(&free_blocks_mutex,NULL);
+    pthread_mutex_init(&directory_mutex,NULL);
     for (int ix = 0; ix < BLOCK_SIZE * DATA_BLOCKS; ix++ ){ //TODO Remover este ciclo
         fs_data[ix] = FREE;
     }
@@ -101,15 +104,16 @@ void state_destroy() { /* nothing to do */
     pthread_mutex_destroy(&freeinode_mutex);
     pthread_mutex_destroy(&free_OF_mutex);
     pthread_mutex_destroy(&free_blocks_mutex);
+    pthread_mutex_destroy(&directory_mutex);
     for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
         pthread_mutex_destroy(&inode_table[ix].mutex);
     }
     for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
         pthread_mutex_destroy(&open_file_table[ix].mutex);
 
-    dir_entry_t * erase = (dir_entry_t *) data_block_get(inode_table[ROOT_DIR_INUM].i_data_block[0]);
+    /*dir_entry_t * erase = (dir_entry_t *) data_block_get(inode_table[ROOT_DIR_INUM].i_data_block[0]);
     for (int ix = 0; ix < BLOCK_SIZE; ix++)
-        pthread_mutex_destroy(&erase[ix].mutex);
+        pthread_mutex_destroy(&erase[ix].mutex);*/
 }
 
 /*
@@ -151,13 +155,14 @@ int inode_create(inode_type n_type) {
                     pthread_mutex_unlock(&freeinode_mutex);
                     return -1;
                 }
-
+                pthread_mutex_lock(&directory_mutex);
                 for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-                    pthread_mutex_init(&dir_entry[i].mutex,NULL);
-                    pthread_mutex_lock(&dir_entry[i].mutex);
+                    //pthread_mutex_init(&dir_entry[i].mutex,NULL);
+                    //pthread_mutex_lock(&dir_entry[i].mutex);
                     dir_entry[i].d_inumber = -1;
-                    pthread_mutex_unlock(&dir_entry[i].mutex);
+                    //pthread_mutex_unlock(&dir_entry[i].mutex);
                 }
+                pthread_mutex_unlock(&directory_mutex);
             }
             else {
                 /* In case of a new file, simply sets its size to 0 */
@@ -241,7 +246,7 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
     }
 
     insert_delay(); // simulate storage access delay to i-node with inumber
-    pthread_mutex_lock(&inode_table[inumber].mutex);
+    pthread_mutex_lock(&inode_table[inumber].mutex); // FIXME acho que aqui temos de ter o unlock so no fim, nao pode ser logo na linha a seguir
     if (inode_table[inumber].i_node_type != T_DIRECTORY) {
         pthread_mutex_unlock(&inode_table[inumber].mutex);
         return -1;
@@ -260,19 +265,22 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
     if (dir_entry == NULL) {
         return -1;
     }
-
+    //FIXME ACHO QUE SECALHAR E OVERKILL TER LOCK EM CADA ENTRADA DA ROOT
     /* Finds and fills the first empty entry */
+    pthread_mutex_lock(&directory_mutex);
     for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-        pthread_mutex_lock(&dir_entry[i].mutex);
+        //pthread_mutex_lock(&dir_entry[i].mutex);
         if (dir_entry[i].d_inumber == -1) {
             dir_entry[i].d_inumber = sub_inumber;
             strncpy(dir_entry[i].d_name, sub_name, MAX_FILE_NAME - 1);
             dir_entry[i].d_name[MAX_FILE_NAME - 1] = 0;
-            pthread_mutex_unlock(&dir_entry[i].mutex);
+            //pthread_mutex_unlock(&dir_entry[i].mutex);
+            pthread_mutex_unlock(&directory_mutex);
             return 0;
         }
-        pthread_mutex_unlock(&dir_entry[i].mutex);
+        //pthread_mutex_unlock(&dir_entry[i].mutex);
     }
+    pthread_mutex_unlock(&directory_mutex);
 
     return -1;
 }
@@ -301,16 +309,19 @@ int find_in_dir(int inumber, char const *sub_name) {
     }
     /* Iterates over the directory entries looking for one that has the target
      * name */
+    pthread_mutex_lock(&directory_mutex);
     for (int i = 0; i < MAX_DIR_ENTRIES; i++) {
-        pthread_mutex_lock(&dir_entry[i].mutex);
+        //pthread_mutex_lock(&dir_entry[i].mutex);
         if ((dir_entry[i].d_inumber != -1) &&
             (strncmp(dir_entry[i].d_name, sub_name, MAX_FILE_NAME) == 0)) {
             int res = dir_entry[i].d_inumber;
-            pthread_mutex_unlock(&dir_entry[i].mutex);
+            //pthread_mutex_unlock(&dir_entry[i].mutex);
+            pthread_mutex_unlock(&directory_mutex);
             return res;
         }
-        pthread_mutex_unlock(&dir_entry[i].mutex);
+        //pthread_mutex_unlock(&dir_entry[i].mutex);
     }
+    pthread_mutex_unlock(&directory_mutex);
 
     return -1;
 }

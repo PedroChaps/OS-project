@@ -13,7 +13,7 @@
 typedef struct {
     char d_name[MAX_FILE_NAME];
     int d_inumber;
-    pthread_mutex_t mutex;
+    //thread_mutex_t mutex;
 } dir_entry_t;
 
 typedef enum { T_FILE, T_DIRECTORY } inode_type;
