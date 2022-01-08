@@ -251,14 +251,14 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
         pthread_mutex_unlock(&inode_table[inumber].mutex);
         return -1;
     }
-    pthread_mutex_unlock(&inode_table[inumber].mutex);
+    //pthread_mutex_unlock(&inode_table[inumber].mutex);
 
     if (strlen(sub_name) == 0) {
         return -1;
     }
 
     /* Locates the block containing the directory's entries */
-    pthread_mutex_lock(&inode_table[inumber].mutex);
+    //pthread_mutex_lock(&inode_table[inumber].mutex);
     dir_entry_t *dir_entry =
         (dir_entry_t *)data_block_get(inode_table[inumber].i_data_block[0]);
     pthread_mutex_unlock(&inode_table[inumber].mutex);

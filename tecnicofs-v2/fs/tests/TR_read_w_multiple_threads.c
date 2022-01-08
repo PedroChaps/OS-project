@@ -5,7 +5,7 @@
 #include <unistd.h>
 #define COUNT 80
 #define SIZE 26
-#define N_THREADS 1 //max = 10476
+#define N_THREADS  //max = 10476
 
 /**
    This test writes on a file and uses multiple threads to read the same file (and same fh) and checks whether the result was the correct one

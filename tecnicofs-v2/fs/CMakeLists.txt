@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/SUCCESS_TR_create_different_files.c)
+        tests/nixowinxq.c)
 
 target_link_libraries(fs PRIVATE m)
