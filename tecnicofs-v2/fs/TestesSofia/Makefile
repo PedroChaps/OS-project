@@ -6,8 +6,6 @@
 CC ?= gcc
 LD ?= gcc
 
-LDFLAGS=-pthread
-
 # space separated list of directories with header files
 INCLUDE_DIRS := fs .
 # this creates a space separated list of -I<dir> where <dir> is each of the values in INCLUDE_DIRS
@@ -16,7 +14,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/SUCCESS_TR_create_different_files tests/SUCCESS-TR_write_w_muktiple_threads  #tests/nome_do_3o_teste
+TARGET_EXECS := tests/tfs_built_in_functions tests/copy_to_external_simple tests/copy_to_external_huge_file tests/copy_to_external_direct_blocks tests/copy_to_external_indirect_blocks tests/copy_to_external_int tests/copy_to_external_errors tests/write_10_blocks_spill tests/write_10_blocks_simple tests/write_more_than_10_blocks_simple
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -43,30 +41,54 @@ else
   CFLAGS += -O3
 endif
 
-
 # A phony target is one that is not really the name of a file
 # https://www.gnu.org/software/make/manual/html_node/Phony-Targets.html
 .PHONY: all clean depend fmt
 
 all: clean $(TARGET_EXECS)
 
-test : test1 test2 #test3
-	@echo "The tests have ended! :D"
+test : test1 test2 test3 test4 test5 test6 test7 test8 test9 test10
+	@echo "Ending tests :)"
 
 test1:
 	@echo ----- Test 1 ------
-	./tests/SUCCESS-TR_write_w_muktiple_threads
+	./tests/tfs_built_in_functions
 
 test2:
 	@echo ----- Test 2 ------
-	./tests/SUCCESS_TR_create_different_files
+	./tests/copy_to_external_simple
 
-#test3:
-#	@echo ----- Test 3 ------
-#	./tests/nome_do_3o_teste.c
+test3:
+	@echo ----- Test 3 ------
+	./tests/copy_to_external_errors
 
-#Tirar comentários da linha 17, 50, 61-63, 86
-#Tirar comentários da linha 28
+test4:
+	@echo ----- Test 4 ------
+	./tests/write_10_blocks_simple
+
+test5:
+	@echo ----- Test 5 ------
+	./tests/write_more_than_10_blocks_simple
+
+test6:
+	@echo ----- Test 6 ------
+	./tests/write_10_blocks_spill
+
+test7:
+	@echo ----- Test 7 ------
+	./tests/copy_to_external_int
+
+test8:
+	@echo ----- Test 8 ------
+	./tests/copy_to_external_huge_file
+
+test9:
+	@echo ----- Test 9 ------
+	./tests/copy_to_external_direct_blocks
+
+test10:
+	@echo ----- Test 10 ------
+	./tests/copy_to_external_indirect_blocks
 
 # The following target can be used to invoke clang-format on all the source and header
 # files. clang-format is a tool to format the source code based on the style specified 
@@ -84,10 +106,16 @@ fmt: $(SOURCES) $(HEADERS)
 # Note the lack of a rule.
 # make uses a set of default rules, one of which compiles C binaries
 # the CC, LD, CFLAGS and LDFLAGS are used in this rule
-tests/SUCCESS_TR_create_different_files: fs/operations.o fs/state.o tests/SUCCESS_TR_create_different_files.o
-tests/SUCCESS-TR_write_w_muktiple_threads: fs/operations.o fs/state.o tests/SUCCESS-TR_write_w_muktiple_threads.o
-
-#tests/nome_do_3o_teste: tests/tests/nome_do_3o_teste.o fs/operations.o fs/state.o
+tests/tfs_built_in_functions: tests/tfs_built_in_functions.o fs/operations.o fs/state.o
+tests/copy_to_external_errors: tests/copy_to_external_errors.o fs/operations.o fs/state.o
+tests/copy_to_external_simple: tests/copy_to_external_simple.o fs/operations.o fs/state.o
+tests/copy_to_external_int: tests/copy_to_external_int.o fs/operations.o fs/state.o
+tests/copy_to_external_huge_file: tests/copy_to_external_huge_file.o fs/operations.o fs/state.o
+tests/copy_to_external_direct_blocks: tests/copy_to_external_direct_blocks.o fs/operations.o fs/state.o
+tests/copy_to_external_indirect_blocks: tests/copy_to_external_indirect_blocks.o fs/operations.o fs/state.o
+tests/write_10_blocks_spill: tests/write_10_blocks_spill.o fs/operations.o fs/state.o
+tests/write_10_blocks_simple: tests/write_10_blocks_simple.o fs/operations.o fs/state.o
+tests/write_more_than_10_blocks_simple: tests/write_more_than_10_blocks_simple.o fs/operations.o fs/state.o
 
 
 clean:

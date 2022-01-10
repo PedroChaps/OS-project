@@ -14,17 +14,17 @@
 /* I-node table */
 static inode_t inode_table[INODE_TABLE_SIZE];
 static char freeinode_ts[INODE_TABLE_SIZE];
-static pthread_mutex_t freeinode_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
+static pthread_mutex_t freeinode_mutex;
 
 /* Data blocks */
 static char fs_data[BLOCK_SIZE * DATA_BLOCKS];
 static char free_blocks[DATA_BLOCKS];
-static pthread_mutex_t free_blocks_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
+static pthread_mutex_t free_blocks_mutex;
 
 /* Volatile FS state */
 static open_file_entry_t open_file_table[MAX_OPEN_FILES];
 static char free_open_file_entries[MAX_OPEN_FILES];
-static pthread_mutex_t free_OF_mutex; //FIXME NAO SEI ONDE E SUPOSTO INICIAR
+static pthread_mutex_t free_OF_mutex;
 
 pthread_mutex_t directory_mutex;
 
@@ -71,28 +71,36 @@ static void insert_delay() {
  * Initializes FS state
  */
 void state_init() {
+
+    /* Initializes the mutexes and the arrays */
     pthread_mutex_init(&freeinode_mutex,NULL);
     pthread_mutex_init(&free_OF_mutex,NULL);
     pthread_mutex_init(&free_blocks_mutex,NULL);
     pthread_mutex_init(&directory_mutex,NULL);
-    for (int ix = 0; ix < BLOCK_SIZE * DATA_BLOCKS; ix++ ){ //TODO Remover este ciclo
+
+    for (int ix = 0; ix < BLOCK_SIZE * DATA_BLOCKS; ix++ ){ //TODO Remover este ciclo e ver os "not sure" cá em baixo
         fs_data[ix] = FREE;
     }
+
     for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
         pthread_mutex_init(&inode_table[ix].mutex,NULL);
     }
+
     for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
         pthread_mutex_init(&open_file_table[ix].mutex,NULL);
+
     pthread_mutex_lock(&freeinode_mutex); //not sure
     for (size_t i = 0; i < INODE_TABLE_SIZE; i++) {
         freeinode_ts[i] = FREE;
     }
     pthread_mutex_unlock(&freeinode_mutex); //not sure
+
     pthread_mutex_lock(&free_blocks_mutex); //not sure
     for (size_t i = 0; i < DATA_BLOCKS; i++) {
         free_blocks[i] = FREE;
     }
     pthread_mutex_unlock(&free_blocks_mutex); //not sure
+
     pthread_mutex_lock(&free_OF_mutex); //not sure
     for (size_t i = 0; i < MAX_OPEN_FILES; i++) {
         free_open_file_entries[i] = FREE;
@@ -100,7 +108,10 @@ void state_init() {
     pthread_mutex_unlock(&free_OF_mutex); //not sure
 }
 
-void state_destroy() { /* nothing to do */
+
+void state_destroy() {
+
+    /* Destroys the mutexes */
     pthread_mutex_destroy(&freeinode_mutex);
     pthread_mutex_destroy(&free_OF_mutex);
     pthread_mutex_destroy(&free_blocks_mutex);
@@ -110,10 +121,6 @@ void state_destroy() { /* nothing to do */
     }
     for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
         pthread_mutex_destroy(&open_file_table[ix].mutex);
-
-    /*dir_entry_t * erase = (dir_entry_t *) data_block_get(inode_table[ROOT_DIR_INUM].i_data_block[0]);
-    for (int ix = 0; ix < BLOCK_SIZE; ix++)
-        pthread_mutex_destroy(&erase[ix].mutex);*/
 }
 
 /*
@@ -124,14 +131,18 @@ void state_destroy() { /* nothing to do */
  *  new i-node's number if successfully created, -1 otherwise
  */
 int inode_create(inode_type n_type) {
+
+    /* Locks the free_inode table so an empty slot can be found without problems */
     pthread_mutex_lock(&freeinode_mutex);
     for (int inumber = 0; inumber < INODE_TABLE_SIZE; inumber++) {
+
         if ((inumber * (int) sizeof(allocation_state_t) % BLOCK_SIZE) == 0) {
             insert_delay(); // simulate storage access delay (to freeinode_ts)
         }
+
         /* Finds first free entry in i-node table */
         if (freeinode_ts[inumber] == FREE) {
-            /* Found a free entry, so takes it for the new i-node*/
+            /* Found a free entry, so uses it the new i-node */
             freeinode_ts[inumber] = TAKEN;
             insert_delay(); // simulate storage access delay (to i-node)
             pthread_mutex_lock(&inode_table[inumber].mutex); //FIXME METER ISTO AQUI OU...
@@ -149,6 +160,8 @@ int inode_create(inode_type n_type) {
                 inode_table[inumber].i_size = BLOCK_SIZE;
                 inode_table[inumber].i_data_block[0]= b;
                 pthread_mutex_unlock(&inode_table[inumber].mutex);
+
+                /* Gets the associated data block */
                 dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
                 if (dir_entry == NULL) {     //FIXME POR FAZER DA LINHA 131 À 139 MAS A PARTIDA NAO E PRECISO PORQUE SO HA UMA DIRETORIA QUE E A RAIZ
                     freeinode_ts[inumber] = FREE;
@@ -156,11 +169,9 @@ int inode_create(inode_type n_type) {
                     return -1;
                 }
                 pthread_mutex_lock(&directory_mutex);
+                /* Initializes the directory entry */
                 for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
-                    //pthread_mutex_init(&dir_entry[i].mutex,NULL);
-                    //pthread_mutex_lock(&dir_entry[i].mutex);
                     dir_entry[i].d_inumber = -1;
-                    //pthread_mutex_unlock(&dir_entry[i].mutex);
                 }
                 pthread_mutex_unlock(&directory_mutex);
             }
@@ -176,6 +187,9 @@ int inode_create(inode_type n_type) {
     pthread_mutex_unlock(&freeinode_mutex);
     return -1;
 }
+
+
+// FIQUEI A COMENTAR AQUI
 
 /*
  * Deletes the i-node.

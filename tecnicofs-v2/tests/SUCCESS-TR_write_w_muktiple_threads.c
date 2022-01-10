@@ -1,11 +1,11 @@
-#include "operations.h"
+#include "fs/operations.h"
 #include <assert.h>
 #include <string.h>
 #include <pthread.h>
 
 #define COUNT 80
 #define SIZE 26
-#define N_THREADS 1025
+#define N_THREADS 10476
 
 /**
    This test uses multiple threads to write on the same file (and same fh) and checks whether the result was the correct one
@@ -25,7 +25,6 @@ void* fn(void* arg){
 
 
 int main() {
-
     pthread_t threads[N_THREADS];
     char *path = "/f1";
 
@@ -71,10 +70,10 @@ int main() {
     fd = tfs_open(path,0);
     assert(fd !=-1);
 
-    int res = tfs_read(fd, myoutput,SIZE*N_THREADS);
+    ssize_t res = tfs_read(fd, myoutput,SIZE*N_THREADS);
     assert(res == SIZE*N_THREADS);
     myoutput[res] = '\0';
-    int a =strlen(output),b = strlen(myoutput);
+    size_t a = strlen(output),b = strlen(myoutput);
     assert(a == b);
     /*
     for(int ix= 0; ix<b;ix++){
