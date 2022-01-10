@@ -41,7 +41,7 @@ int main(){
     fd = tfs_open(path,0);
     assert(fd !=-1);
     int res = tfs_read(fd,myoutput,SIZE * N_THREADS);
-    printf("%s",myoutput);
+    printf("%s\n",myoutput);
     printf("%d\n",res);
     //assert(res == SIZE * N_THREADS);
     assert(tfs_close(fd)!= -1);

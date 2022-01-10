@@ -86,8 +86,8 @@ build CMakeFiles/fs.dir/state.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/p
   OBJECT_DIR = CMakeFiles/fs.dir
   OBJECT_FILE_DIR = CMakeFiles/fs.dir
 
-build CMakeFiles/fs.dir/tests/nixowinxq.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/nixowinxq.c || cmake_object_order_depends_target_fs
-  DEP_FILE = CMakeFiles/fs.dir/tests/nixowinxq.c.o.d
+build CMakeFiles/fs.dir/tests/write_and_read.c.o: C_COMPILER__fs_Debug /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/write_and_read.c || cmake_object_order_depends_target_fs
+  DEP_FILE = CMakeFiles/fs.dir/tests/write_and_read.c.o.d
   FLAGS = -pthread -g -std=gnu11
   INCLUDES = -I/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/.
   OBJECT_DIR = CMakeFiles/fs.dir
@@ -101,7 +101,7 @@ build CMakeFiles/fs.dir/tests/nixowinxq.c.o: C_COMPILER__fs_Debug /home/andre/De
 #############################################
 # Link the executable fs
 
-build fs: C_EXECUTABLE_LINKER__fs_Debug CMakeFiles/fs.dir/operations.c.o CMakeFiles/fs.dir/state.c.o CMakeFiles/fs.dir/tests/nixowinxq.c.o
+build fs: C_EXECUTABLE_LINKER__fs_Debug CMakeFiles/fs.dir/operations.c.o CMakeFiles/fs.dir/state.c.o CMakeFiles/fs.dir/tests/write_and_read.c.o
   FLAGS = -pthread -g
   LINK_LIBRARIES = -lm
   OBJECT_DIR = CMakeFiles/fs.dir

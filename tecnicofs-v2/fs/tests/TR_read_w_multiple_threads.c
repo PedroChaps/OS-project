@@ -4,9 +4,9 @@
 #include <pthread.h>
 #include <unistd.h>
 #define COUNT 80
-#define SIZE 26
-#define N_THREADS  //max = 10476
-
+#define SIZE 27
+#define N_THREADS 1025//max = 10476
+//FIXME muito estranho, com 1024 threads funciona mas com 1025 nao... e 1024 e o BLOCK SIZE, mas nao consigo perceber porque
 /**
    This test writes on a file and uses multiple threads to read the same file (and same fh) and checks whether the result was the correct one
  */
@@ -18,10 +18,11 @@ typedef struct{
     int offset;
 } Mystruct;
 
+
 void* fn(void* arg){
     Mystruct s = *((Mystruct *)arg);
     ssize_t res = tfs_read(s.fh,s.buffer + s.offset, s.to_read);
-    return (void*)res;
+    return NULL;
 }
 
 
@@ -31,9 +32,7 @@ int main() {
 
     /* Writing this buffer multiple times to a file stored on 1KB blocks will 
        always hit a single block (since 1KB is a multiple of SIZE=256) */
-    char input[SIZE+1];
-    char write[SIZE+1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    strcpy(input, write);
+    char write[SIZE+1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
 
     char output [SIZE * N_THREADS + 1];
 
@@ -43,71 +42,70 @@ int main() {
         of += SIZE;
     }
     output[of] = '\0';
-    //printf("%s\n", output);
-
-
-    char *myoutput = (char*) malloc(sizeof(char)*(SIZE*N_THREADS+1));
-
+    char * myoutput= (char*) malloc(sizeof(char)*(SIZE * N_THREADS + 1));
+    char * output2 = (char*) malloc(sizeof(char)*(SIZE*N_THREADS+1));
     assert(tfs_init() != -1);
 
     int fd = tfs_open(path,TFS_O_CREAT);
-    ///assert(fd !=-1);
-
-    // writes N_THREADS blocks of data
-    for (int i = 0; i < N_THREADS; i++) {
-        assert(tfs_write(fd,input,SIZE) == SIZE);
-    }
+    assert(fd !=-1);
+    assert(tfs_write(fd,output,SIZE*N_THREADS) == SIZE*N_THREADS);
     assert(tfs_close(fd) != -1);
-
-
-    /* Open again to check if contents are as expected */
-    /*
-    fd = tfs_open(path, 0);
-    assert(fd != -1 );
-
-    for (int i = 0; i < N_THREADS; i++) {
-        assert(tfs_read(fd, output, SIZE) == SIZE);
-        assert (memcmp(input, output, SIZE) == 0);
+    int fd1 = tfs_open(path,0);
+    assert(fd1!=-1);
+    of = 0;
+    for(int ix = 0; ix<N_THREADS;ix++){
+        int res = tfs_read(fd1,output2+of,SIZE);
+        of+= SIZE;
     }
-    */
+    output2[of] = '\0';
+    assert(tfs_close(fd1)!=-1);
 
-    /* Open again to check if contents are as expected, but with threads */
     fd = tfs_open(path, 0);
     assert(fd != -1);
 
-    Mystruct* s;
-    s = (Mystruct*)malloc(sizeof (Mystruct));
-    s->to_read = BLOCK_SIZE;
-    s->buffer = myoutput;
-    s->fh = fd;
-    s->offset = 0;
-
+    Mystruct s[N_THREADS];
+    for(int i = 0; i<N_THREADS; i++){
+        s[i].fh = fd;
+        s[i].to_read = SIZE;
+        s[i].buffer = myoutput;
+        s[i].offset = i * SIZE;
+    }
 
     for (int i = 0; i < N_THREADS; i++) {
-        int suc = pthread_create(&threads[i], NULL, fn, (void *) s);
-        assert(suc == 0);
-        s->offset += SIZE; //TODO Pode-se incrementar o offset? Não tem problemas por ser um argumento de uma thread?
-    }
-    sleep(1);
+            int suc = pthread_create(&threads[i], NULL, fn, (void *) &s[i]);
+            assert(suc == 0);
+        }
+
     for (int i = 0; i < N_THREADS; i++){
         pthread_join(threads[i], NULL);
     }
+
+    int err = -1;
+    for(int ix= 0; ix<SIZE*N_THREADS;ix++){
+        if(output[ix]!=output2[ix]) {
+            err = ix;
+            printf("%d\n", ix);
+            break;
+        }
+    }
+    if (err != -1) {
+        for (int ix = 10; ix >= 0; ix--)
+            if (err - ix > -1)
+                printf("%c  %c\n", output2[err - ix], myoutput[err - ix]);
+        for (int ix = 1; ix <= 10; ix++)
+            if (err + ix < SIZE * N_THREADS)
+                printf("%c  %c\n", output2[err + ix], myoutput[err + ix]);
+    }
+
     assert(tfs_close(fd) != -1);
-
     myoutput[N_THREADS*SIZE] = '\0';
-
-    int cmp_val = strcmp(output, myoutput);
-    printf("cmp_val = %d\n", cmp_val);
-    ///assert(cmp_val == 0);
-
-    sleep(1);
-
-    printf("expected: %s\n", output);
-    printf("myoutput: %s\n", myoutput);
-
-    free(myoutput);
-
+    int cmp_val = strcmp(output2, myoutput);
+    //assert(cmp_val == 0);
+    printf("%d\n",cmp_val);
+    printf("output   :%s\n", output2 + SIZE*(N_THREADS-2));
+    printf("myoutput :%s\n", myoutput + SIZE*(N_THREADS-2));
     printf("Sucessful test\n");
-
+    free(myoutput);
+    free(output2);
     return 0;
 }

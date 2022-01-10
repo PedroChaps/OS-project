@@ -55,11 +55,11 @@ int tfs_open(char const *name, int flags) {
     if (!valid_pathname(name)) {
         return -1;
     }
-
+    inode_t* inode = NULL;
     inum = tfs_lookup(name);
     if (inum >= 0) {
         /* The file already exists */
-        inode_t *inode = inode_get(inum);
+        inode = inode_get(inum);
         if (inode == NULL) {
             return -1;
         }
@@ -106,7 +106,7 @@ int tfs_open(char const *name, int flags) {
         else {
             offset = 0;
         }
-        pthread_mutex_unlock(&inode->mutex);
+        //pthread_mutex_unlock(&inode->mutex);
     }
 
     else if (flags & TFS_O_CREAT) {
@@ -129,7 +129,10 @@ int tfs_open(char const *name, int flags) {
 
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
-    return add_to_open_file_table(inum, offset);
+    int fh = add_to_open_file_table(inum,offset);
+    if (inode!= NULL)
+        pthread_mutex_unlock(&inode->mutex);
+    return fh;
 
     /* Note: for simplification, if file was created with TFS_O_CREAT and there
      * is an error adding an entry to the open file table, the file is not
@@ -233,7 +236,6 @@ int block_write(inode_t *inode, size_t * block_offset, char const *buffer, int *
 
         if (block == NULL)
             return -1;
-
         memcpy(block + *block_offset,  buffer + *buffer_offset, what_to_write); //pode ter bugs
         *buffer_offset += what_to_write;
 
@@ -309,9 +311,8 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
             return -1;
         }
     }
-
+    //printf("%d   1\n",file->of_offset); //o file offset nao esta correto para todas as threads
     if (to_write > 0) {
-
         data_block_write(inode, file -> of_offset, buffer, to_write);
 
         /* The offset associated with the file handle is
