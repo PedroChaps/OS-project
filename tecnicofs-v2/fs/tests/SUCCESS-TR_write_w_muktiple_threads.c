@@ -8,7 +8,12 @@
 #define N_THREADS 10476
 
 /**
-   This test uses multiple threads to write on the same file (and same fh) and checks whether the result was the correct one
+   This test uses multiple threads to write on the same file (and same fh) and checks whether the result
+   was the correct one.
+   A maximum of N_THREADS = 10476 can be used (if the value is exceeded, an error will occur because
+   it exceeds the file size.
+   N_THREADS threads are created and each writes the abecedary to the file, by calling the function
+   `tfs_write`.
  */
 
 typedef struct{
@@ -28,7 +33,7 @@ int main() {
     pthread_t threads[N_THREADS];
     char *path = "/f1";
 
-    /* Writing this buffer multiple times to a file stored on 1KB blocks will 
+    /* Writing this buffer multiple times to a file stored on 1KB blocks will
        always hit a single block (since 1KB is a multiple of SIZE=256) */
     char input[SIZE+1];
     char write[SIZE+1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -70,10 +75,10 @@ int main() {
     fd = tfs_open(path,0);
     assert(fd !=-1);
 
-    int res = tfs_read(fd, myoutput,SIZE*N_THREADS);
+    ssize_t res = tfs_read(fd, myoutput,SIZE*N_THREADS);
     assert(res == SIZE*N_THREADS);
     myoutput[res] = '\0';
-    int a =strlen(output),b = strlen(myoutput);
+    size_t a = strlen(output),b = strlen(myoutput);
     assert(a == b);
     /*
     for(int ix= 0; ix<b;ix++){
