@@ -15,7 +15,7 @@ void* fn(void* arg){
     int fd = tfs_open(res,TFS_O_CREAT);
     assert(fd !=-1);
     assert(tfs_close(fd) != -1);
-
+    return NULL;
 }
 
 
@@ -27,7 +27,7 @@ int main() {
     for(int i = 0; i< N_THREADS; i++){
         arg[i][0] = '/';
         arg[i][1] = 'f';
-        arg[i][2] = i + 1 + '0';
+        arg[i][2] = (char) (i + 1 + 79);
         arg[i][3] = '\0';
 
     }
