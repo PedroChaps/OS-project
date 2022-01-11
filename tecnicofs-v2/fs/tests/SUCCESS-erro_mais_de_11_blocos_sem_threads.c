@@ -6,7 +6,7 @@
 #define COUNT 80
 #define SIZE 26
 #define N_THREADS 8000
-#define N_WRITES 10477
+#define N_WRITES 10475
 
 
 /**
@@ -27,7 +27,7 @@ void* fn(void* arg){
 
 
 int main() {
-    pthread_t threads[N_THREADS];
+
     char *path = "/f1";
 
     /* Writing this buffer multiple times to a file stored on 1KB blocks will
@@ -68,7 +68,7 @@ int main() {
     fd = tfs_open(path,0);
     assert(fd !=-1);
 
-    int res = tfs_read(fd, myoutput,SIZE*N_WRITES);
+    ssize_t res = tfs_read(fd, myoutput,SIZE*N_WRITES);
 
     myoutput[res] = '\0';
 
@@ -76,8 +76,8 @@ int main() {
     assert(res == SIZE*N_WRITES);
 
 
-    int a =strlen(output),b = strlen(myoutput);
-    printf("expected len = %d, my len = %d\n", a, b);
+    size_t a =strlen(output),b = strlen(myoutput);
+    printf("expected len = %ld, my len = %d\n", a, (int) b);
 
     /*
     for(int ix= 0; ix<SIZE*N_WRITES;ix++){
@@ -96,13 +96,13 @@ int main() {
     int cmp_val = strcmp(output,myoutput);
     printf("cmp value = %d\n", cmp_val);
 
-    //assert(cmp_val == 0);
+    assert(cmp_val == 0);
     //printf("%s", output);
     //printf("%s", myoutput);
     //printf("%d\n", cmp_val);
     free(myoutput);
 
-    //printf("Sucessful test\n");
+    printf("Sucessful test\n");
 
     return 0;
 }
