@@ -1,7 +1,6 @@
-#include "fs/operations.h"
+#include "operations.h"
 #include <assert.h>
 #include <string.h>
-
 #define MAX_SIZE INODE_SIZE_AVAILABLE
 #define READING_SIZE 3000
 

@@ -295,10 +295,10 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
         return -1;
     }
 
-    pthread_rwlock_unlock(&inode_table[inumber].rwlock);
-
-
+    pthread_rwlock_unlock(&inode_table[inumber].rwlock);   
     pthread_mutex_lock(&directory_mutex);
+
+
     /* Finds and fills the first empty entry */
     for (size_t i = 0; i < MAX_DIR_ENTRIES; i++) {
 

@@ -156,7 +156,7 @@ int tfs_close(int fhandle) {
 }
 
 
-int block_create_indirect(inode_t *inode, size_t mem) {
+ssize_t block_create_indirect(inode_t *inode, size_t mem) {
 
     /* Gets the amount of blocks the inode has */
     int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
@@ -187,14 +187,11 @@ int block_create_indirect(inode_t *inode, size_t mem) {
     }
 
     /* If mem isn't zero, it means it tried to write more blocks than the FS allows */
-    if(mem != 0)
-        return -1;
-
-    return 0;
+    return (ssize_t) mem;
 }
 
 
-int block_create(inode_t * inode, size_t mem){
+ssize_t block_create(inode_t * inode, size_t mem){
 
     /* Gets the amount of blocks the inode has */
     int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
@@ -216,10 +213,7 @@ int block_create(inode_t * inode, size_t mem){
         return 0;
     /* Else, besides the direct blocks created, more indirect blocks
      * have to be created too (with the remaining memory) */
-    else if (block_create_indirect(inode, mem) == -1)
-        return -1;
-
-    return 0;
+    return block_create_indirect(inode,mem);
 }
 
 
@@ -375,12 +369,15 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     size_t mem_available = (size_t) (n_blocks*BLOCK_SIZE) - inode->i_size;
     if (to_write > mem_available){
         /* If there is less memory available than what is expected to be written, creates enough blocks */
-        if (block_create(inode, to_write - mem_available) == -1) {
+        ssize_t mem = block_create(inode,to_write - mem_available);
+        if (mem == -1) {
             pthread_rwlock_unlock(&inode->rwlock);
             pthread_mutex_unlock(&file->mutex);
             return -1;
         }
+        to_write -= (size_t) mem;
     }
+
 
     if (to_write > 0) {
         /* Writes the data, now with enough space */

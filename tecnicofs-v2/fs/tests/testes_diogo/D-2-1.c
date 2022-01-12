@@ -1,4 +1,4 @@
-#include "fs/operations.h"
+#include "operations.h"
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
@@ -13,7 +13,7 @@ int main() {
     assert(tfs_init() == 0);
 
     char src_file[] = "/testfile"; 
-    char dest_file[] = "./tests/custom/.d_2_1.txt";
+    char dest_file[] = "./output.txt";
 
     int file = tfs_open(src_file, TFS_O_CREAT);
     assert(file != -1);

@@ -1,4 +1,4 @@
-#include "fs/operations.h"
+#include "operations.h"
 #include <assert.h>
 #include <string.h>
 
@@ -18,6 +18,7 @@ int main() {
     assert(fileIn != -1);    
 
     ssize_t r = tfs_write(fileIn, bufferIn, (MAX_SIZE + EXTRA) * sizeof(char));
+    printf("%ld\n",r);
     assert(r == MAX_SIZE);
 
     int fileOut = tfs_open("/testfile", 0);
