@@ -179,11 +179,13 @@ int inode_create(inode_type n_type) {
                 pthread_mutex_unlock(&directory_mutex);
             }
             else {
-                /* In case of a new file, simply sets its size to 0 */
+                /* In case of a new file, simply sets its size to 0 and initializes table */
                 inode_table[inumber].i_size = 0;
+                for (int ix = 0;ix < INODE_DIRECT_ENTRIES + INODE_INDIRECT_ENTRIES;ix ++){
+                    inode_table[inumber].i_data_block[ix] = -1;
+                }
                 pthread_rwlock_unlock(&inode_table[inumber].rwlock);
                 
-                // FIXME probably temos que meter isto a -1
             }
             pthread_mutex_unlock(&freeinode_mutex);
             return inumber;

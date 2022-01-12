@@ -18,7 +18,7 @@ int main() {
     int file1 = tfs_open("/testfile", TFS_O_CREAT);
     assert(file1 != -1);    
 
-    ssize_t r = tfs_write(file1, bufferIn, MAX_SIZE +1000);
+    ssize_t r = tfs_write(file1, bufferIn, MAX_SIZE);
     assert(r == MAX_SIZE);
 
     int file2 = tfs_open("/testfile", 0);
