@@ -14,7 +14,7 @@ int main() {
 
     char *path1 = "/f1";
     char *path2 = "/f2";
-    char *pathDest = "/home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs/tests/escreve_aq_bro.txt";
+    char *pathDest = "/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/escreveaquibro.txt";
 
     printf("Size to test = %ld\n", sizeof(buffer));
 

@@ -70,7 +70,7 @@ int tfs_open(char const *name, int flags) {
         }
 
         /*Since the inode exists, locks it */
-        pthread_mutex_lock(&(inode->mutex));
+        pthread_rwlock_wrlock(&(inode->rwlock));
 
         /* Trucate (if requested) */
         if (flags & TFS_O_TRUNC) {
@@ -81,7 +81,7 @@ int tfs_open(char const *name, int flags) {
                 /*Frees every direct block*/
                 for (i = 0; i < n_blocks && i < 10; i++)
                     if (data_block_free(inode->i_data_block[i]) == -1) {
-                        pthread_mutex_unlock(&inode->mutex);
+                        pthread_rwlock_unlock(&inode->rwlock);
                         return -1;
                     }
 
@@ -92,7 +92,7 @@ int tfs_open(char const *name, int flags) {
 
                     while (n_blocks != 0) {
                         if (data_block_free(*block_of_blocks) == -1) {
-                            pthread_mutex_unlock(&inode->mutex);
+                            pthread_rwlock_unlock(&inode->rwlock);
                             return -1;
                         }
 
@@ -101,7 +101,7 @@ int tfs_open(char const *name, int flags) {
                     }
                     /*Block of blocks being fred */
                     if (data_block_free( inode->i_data_block[10]) == -1) {
-                        pthread_mutex_unlock(&inode->mutex);
+                        pthread_rwlock_unlock(&inode->rwlock);
                         return -1;
                     }
                 }
@@ -142,7 +142,7 @@ int tfs_open(char const *name, int flags) {
      * return the corresponding handle */
     int fh = add_to_open_file_table(inum,offset);
     if (inode != NULL)
-        pthread_mutex_unlock(&inode->mutex);
+        pthread_rwlock_unlock(&inode->rwlock);
     return fh;
 
     /* Note: for simplification, if file was created with TFS_O_CREAT and there
@@ -370,13 +370,13 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     }
 
     /* locks the inode, because everything on it will be updated, and gets the available memory */
-    pthread_mutex_lock(&inode->mutex);
+    pthread_rwlock_wrlock(&inode->rwlock);
     int n_blocks = (int) ceil((double)inode -> i_size/ BLOCK_SIZE);
     size_t mem_available = (size_t) (n_blocks*BLOCK_SIZE) - inode->i_size;
     if (to_write > mem_available){
         /* If there is less memory available than what is expected to be written, creates enough blocks */
         if (block_create(inode, to_write - mem_available) == -1) {
-            pthread_mutex_unlock(&inode->mutex);
+            pthread_rwlock_unlock(&inode->rwlock);
             pthread_mutex_unlock(&file->mutex);
             return -1;
         }
@@ -395,7 +395,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     }
 
     /* Now that everything was written, unlocks both the inode and the file */
-    pthread_mutex_unlock(&inode->mutex);
+    pthread_rwlock_unlock(&inode->rwlock);
     pthread_mutex_unlock(&file-> mutex);
 
     return (ssize_t) to_write;
@@ -519,7 +519,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     }
 
     /* Since the inode exists, we lock it and determine how many bytes to read */
-    pthread_mutex_lock(&(inode->mutex));
+    pthread_rwlock_rdlock(&(inode->rwlock));
     size_t to_read = inode->i_size - file->of_offset; //
     if (to_read > len) {
         to_read = len;
@@ -531,7 +531,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Everything is unlocked and the offset associated with the file handle is
      * incremented accordingly */
-    pthread_mutex_unlock(&inode->mutex);
+    pthread_rwlock_unlock(&inode->rwlock);
     file->of_offset += to_read;
     pthread_mutex_unlock(&(file->mutex));
 

@@ -16,7 +16,7 @@ int main() { // Passou! :D
     char buffer[SIZE_TO_TEST+1];
 
     char *tfs_path = "/f1";
-    char *path = "/home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs/tests/escreve_aq_bro.txt";
+    char *path = "/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/tests/escreveaquibro.txt";
 
     printf("Size to test = %ld\n", sizeof(buffer));
 

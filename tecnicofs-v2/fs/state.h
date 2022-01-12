@@ -13,7 +13,6 @@
 typedef struct {
     char d_name[MAX_FILE_NAME];
     int d_inumber;
-    //thread_mutex_t mutex;
 } dir_entry_t;
 
 typedef enum { T_FILE, T_DIRECTORY } inode_type;
@@ -26,7 +25,7 @@ typedef struct {
     size_t i_size;
     int i_data_block[11];
     /* in a real FS, more fields would exist here */
-    pthread_mutex_t mutex;
+    pthread_rwlock_t rwlock;
 } inode_t;
 
 typedef enum { FREE = 0, TAKEN = 1 } allocation_state_t;

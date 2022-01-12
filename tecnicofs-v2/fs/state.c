@@ -86,7 +86,7 @@ void state_init() {
     }
 
     for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
-        pthread_mutex_init(&inode_table[ix].mutex,NULL);
+        pthread_rwlock_init(&inode_table[ix].rwlock,NULL);
     }
 
     for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
@@ -120,7 +120,7 @@ void state_destroy() {
     pthread_mutex_destroy(&free_blocks_mutex);
     pthread_mutex_destroy(&directory_mutex);
     for (int ix = 0; ix < INODE_TABLE_SIZE; ix++ ){
-        pthread_mutex_destroy(&inode_table[ix].mutex);
+        pthread_rwlock_destroy(&inode_table[ix].rwlock);
     }
     for (int ix = 0; ix < MAX_OPEN_FILES;ix++)
         pthread_mutex_destroy(&open_file_table[ix].mutex);
@@ -148,7 +148,7 @@ int inode_create(inode_type n_type) {
             /* Found a free entry, so uses it the new i-node */
             freeinode_ts[inumber] = TAKEN;
             insert_delay(); // simulate storage access delay (to i-node)
-            pthread_mutex_lock(&inode_table[inumber].mutex); //FIXME METER ISTO AQUI OU...
+            pthread_rwlock_wrlock(&inode_table[inumber].rwlock); //FIXME METER ISTO AQUI OU...
             inode_table[inumber].i_node_type = n_type;
             //FIXME AQUI??????
             if (n_type == T_DIRECTORY) {
@@ -162,7 +162,7 @@ int inode_create(inode_type n_type) {
                 }
                 inode_table[inumber].i_size = BLOCK_SIZE;
                 inode_table[inumber].i_data_block[0]= b;
-                pthread_mutex_unlock(&inode_table[inumber].mutex);
+                pthread_rwlock_unlock(&inode_table[inumber].rwlock);
 
                 /* Gets the associated data block */
                 dir_entry_t *dir_entry = (dir_entry_t *)data_block_get(b);
@@ -181,7 +181,7 @@ int inode_create(inode_type n_type) {
             else {
                 /* In case of a new file, simply sets its size to 0 */
                 inode_table[inumber].i_size = 0;
-                pthread_mutex_unlock(&inode_table[inumber].mutex);
+                pthread_rwlock_unlock(&inode_table[inumber].rwlock);
             }
             pthread_mutex_unlock(&freeinode_mutex);
             return inumber;
@@ -217,7 +217,7 @@ int inode_delete(int inumber) {
 
     /* Gets the inode and locks it */
     inode_t * inode = &inode_table[inumber];
-    pthread_mutex_lock(&(inode->mutex));
+    pthread_rwlock_wrlock(&(inode->rwlock));
 
     /* Frees blocks until there are no more blocks */
     if (inode->i_size > 0) {
@@ -246,7 +246,7 @@ int inode_delete(int inumber) {
 
     }
 
-    pthread_mutex_unlock(&(inode->mutex));
+    pthread_rwlock_unlock(&(inode->rwlock));
     return 0;
 }
 
@@ -281,10 +281,10 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
     /* Simulate storage access delay to i-node with inumber */
     insert_delay();
 
-    pthread_mutex_lock(&inode_table[inumber].mutex); // FIXME acho que aqui temos de ter o unlock so no fim, nao pode ser logo na linha a seguir
+    pthread_rwlock_rdlock(&inode_table[inumber].rwlock); // FIXME acho que aqui temos de ter o unlock so no fim, nao pode ser logo na linha a seguir
 
     if (inode_table[inumber].i_node_type != T_DIRECTORY || strlen(sub_name) == 0) {
-        pthread_mutex_unlock(&inode_table[inumber].mutex);
+        pthread_rwlock_unlock(&inode_table[inumber].rwlock);
         return -1;
     }
 
@@ -295,7 +295,7 @@ int add_dir_entry(int inumber, int sub_inumber, char const *sub_name) {
         return -1;
     }
 
-    pthread_mutex_unlock(&inode_table[inumber].mutex);
+    pthread_rwlock_unlock(&inode_table[inumber].rwlock);
 
 
     pthread_mutex_lock(&directory_mutex);
@@ -330,11 +330,11 @@ int find_in_dir(int inumber, char const *sub_name) {
     /* Simulate storage access delay to i-node with inumber */
     insert_delay();
 
-    pthread_mutex_lock(&inode_table[inumber].mutex);
+    pthread_rwlock_rdlock(&inode_table[inumber].rwlock);
 
     if (!valid_inumber(inumber) ||
         inode_table[inumber].i_node_type != T_DIRECTORY) {
-        pthread_mutex_unlock(&inode_table[inumber].mutex);
+        pthread_rwlock_unlock(&inode_table[inumber].rwlock);
         return -1;
     }
 
@@ -345,7 +345,7 @@ int find_in_dir(int inumber, char const *sub_name) {
         return -1;
     }
 
-    pthread_mutex_unlock(&inode_table[inumber].mutex);
+    pthread_rwlock_unlock(&inode_table[inumber].rwlock);
 
 
     pthread_mutex_lock(&directory_mutex);
