@@ -25,15 +25,18 @@ int main() {
     int fileIn = tfs_open("/testfile", TFS_O_CREAT);
     assert(fileIn != -1);    
 
-    ssize_t r = tfs_write(fileIn, bufferIn, (MAX_SIZE + EXTRA) * sizeof(char));
+    ssize_t r = tfs_write(fileIn, bufferIn, MAX_SIZE);
     printf("%ld\n",r);
     assert(r == MAX_SIZE);
 
     int fileOut = tfs_open("/testfile", 0);
     assert(fileOut != -1);
+    of = 0;
+    for (int ix = 0; ix< 10090; ix++){
+        tfs_read(fileOut,bufferOut + of, SIZE);
+        of+= SIZE;
+    }
     
-    r = tfs_read(fileOut, bufferOut, MAX_SIZE + EXTRA);
-    assert(r == MAX_SIZE);
     assert(memcmp(bufferIn, bufferOut, MAX_SIZE) == 0);
 
 
