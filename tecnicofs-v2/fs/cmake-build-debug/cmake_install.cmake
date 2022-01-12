@@ -1,4 +1,4 @@
-# Install script for directory: /home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs
+# Install script for directory: /home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -50,5 +50,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/andre/Desktop/SO/project/SO-projeto/tecnicofs-v2/fs/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/ch4ps/Desktop/SO-projeto/tecnicofs-v2/fs/cmake-build-debug/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

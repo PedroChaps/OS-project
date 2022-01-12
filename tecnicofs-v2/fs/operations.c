@@ -363,7 +363,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     /* Iterates between the starting block and the end block, allocating the blocks that haven't been allocated yet regarding direct entries */
     while(starting_block <= INODE_DIRECT_ENTRIES && starting_block <= end_block){
         
-        if(inode->i_data_block[starting_block-1] == -1)
+        if(inode->i_data_block[starting_block-1] == 0)
             if ((inode-> i_data_block[starting_block-1] = data_block_alloc()) == -1)
                 return -1;
         starting_block++;
@@ -384,7 +384,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     
     /* Checks if block_of_blocks was created already and, if not, creates it and 
        resets it's entries */
-    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == -1){
+    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == 0){
         /* Allocates block and gets it */
         if((inode->i_data_block[INODE_DIRECT_ENTRIES] = data_block_alloc()) == -1)
             return -1;
@@ -393,7 +393,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
             return -1;
         /* resets it's entries */
         for(int i = 0; i < BLOCKS_IN_A_INDIRECT_BLOCK; i++)
-            block_of_blocks[i] = -1;
+            block_of_blocks[i] = 0;
     }
     
     /* Sets the block of blocks if it hadn't been set yet */
@@ -402,7 +402,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     /* Now, checks indirect entries */
     while (starting_block <= end_block) {
     
-        if (block_of_blocks[starting_block-1] == -1)
+        if (block_of_blocks[starting_block-1] == 0)
             if ((block_of_blocks[starting_block-1] = data_block_alloc()) == -1)
                 return -1;
         starting_block++;
@@ -445,18 +445,6 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
         pthread_mutex_unlock(&file->mutex);
         return -1;    
     }
-    
-    //TODO pq de fazermos to-write -= (size_t) mem?
-    /* if (to_write > mem_available){
-    
-        ssize_t mem = block_create(inode,to_write - mem_available);
-        if (mem == -1) {
-            pthread_rwlock_unlock(&inode->rwlock);
-            pthread_mutex_unlock(&file->mutex);
-            return -1;
-        }
-        to_write -= (size_t) mem;
-    } */
 
 
     /* Writes the data, now with enough space */
@@ -468,7 +456,6 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     if (file->of_offset > inode->i_size) {
         inode->i_size = file->of_offset;
     }
-    
 
     /* Now that everything was written, unlocks both the inode and the file */
     pthread_rwlock_unlock(&inode->rwlock);
