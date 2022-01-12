@@ -4,7 +4,7 @@
 #include <pthread.h>
 
 #define COUNT 80
-#define SIZE 270
+#define SIZE 501
 #define N_THREADS 20  //max = 20
 
 char * path = "/f1";
@@ -24,7 +24,7 @@ int main(){
     for (int ix = 0; ix< N_THREADS; ix++)
         outputs[ix] = (char*) malloc(sizeof(char)* SIZE);
     pthread_t tid[N_THREADS];
-    char * write = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+    char * write = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ ABCDEFGHIJKLMNOPQRSTUVWXYZ  foinbed9owehnddnweod n woeind weoidn  weoidn weid nwed ndo 2ndi23nd 2o3ind 23oid n23od n23iod n23dio n23ed oin23di n23oid n23oind 23oidn 23iond 23iond 23iond23oind 23ind 32oind 23ind 23oid n23ind 23oi nd23ion d2io3nd 23ione 23ion ";
     int fd = tfs_open(path,TFS_O_CREAT);
     assert(fd !=-1);
     assert(tfs_write(fd,write,SIZE) == SIZE);
@@ -43,7 +43,7 @@ int main(){
         }
 
     free(outputs);
-    printf("Succesful test\n");
+    printf("Sucesful test\n");
     exit(EXIT_SUCCESS);
 
 }

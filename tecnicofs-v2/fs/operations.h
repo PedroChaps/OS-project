@@ -4,7 +4,7 @@
 #include "config.h"
 #include "state.h"
 #include <sys/types.h>
-#define INODE_SIZE_AVAILABLE 272384
+
 
 enum {
     TFS_O_CREAT = 0b001,

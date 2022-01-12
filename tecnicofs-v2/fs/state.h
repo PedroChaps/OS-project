@@ -23,7 +23,7 @@ typedef enum { T_FILE, T_DIRECTORY } inode_type;
 typedef struct {
     inode_type i_node_type;
     size_t i_size;
-    int i_data_block[11];
+    int i_data_block[INODE_DIRECT_ENTRIES + INODE_INDIRECT_ENTRIES];
     /* in a real FS, more fields would exist here */
     pthread_rwlock_t rwlock;
 } inode_t;
