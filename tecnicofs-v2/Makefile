@@ -16,7 +16,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/SUCCESS_TR_create_different_files tests/SUCCESS-TR_write_w_muktiple_threads  #tests/nome_do_3o_teste
+TARGET_EXECS := tests/create_different_files_with_threads tests/write_using_multiple_threads  #tests/nome_do_3o_teste
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -55,11 +55,11 @@ test : test1 test2 #test3
 
 test1:
 	@echo ----- Test 1 ------
-	./tests/SUCCESS-TR_write_w_muktiple_threads
+	./tests/write_using_multiple_threads
 
 test2:
 	@echo ----- Test 2 ------
-	./tests/SUCCESS_TR_create_different_files
+	./tests/create_different_files_with_threads
 
 
 #test3:
@@ -85,8 +85,8 @@ fmt: $(SOURCES) $(HEADERS)
 # Note the lack of a rule.
 # make uses a set of default rules, one of which compiles C binaries
 # the CC, LD, CFLAGS and LDFLAGS are used in this rule
-tests/SUCCESS_TR_create_different_files: fs/operations.o fs/state.o tests/SUCCESS_TR_create_different_files.o
-tests/SUCCESS-TR_write_w_muktiple_threads: fs/operations.o fs/state.o tests/SUCCESS-TR_write_w_muktiple_threads.o
+tests/create_different_files_with_threads: fs/operations.o fs/state.o tests/create_different_files_with_threads.o
+tests/write_using_multiple_threads: fs/operations.o fs/state.o tests/write_using_multiple_threads.o
 
 #tests/nome_do_3o_teste: tests/tests/nome_do_3o_teste.o fs/operations.o fs/state.o
 
