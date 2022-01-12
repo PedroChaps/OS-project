@@ -156,64 +156,6 @@ int tfs_close(int fhandle) {
 }
 
 
-ssize_t block_create_indirect(inode_t *inode, size_t mem) {
-
-    /* Gets the amount of blocks the inode has */
-    int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
-    /* and gets the amount of indirect blocks the inode has */
-    int n_blocks_ind = max(n_blocks - 10, 0);
-
-    /* if 0, it means the block of blocks wasn't created yet, so creates it */
-    if (n_blocks_ind == 0)
-        if((inode->i_data_block[INODE_DIRECT_ENTRIES] = data_block_alloc()) == -1)
-            return -1;
-
-    /* Gets the block of blocks */
-    int * block = (int*) data_block_get(inode ->i_data_block[INODE_DIRECT_ENTRIES]);
-    if (block == NULL)
-        return -1;
-
-    /* Allocates blocks until the goal size, `mem`, was reached */
-    while (mem > 0 && n_blocks_ind < BLOCKS_IN_A_INDIRECT_BLOCK){
-
-        if ((*(block + n_blocks_ind) = data_block_alloc()) == -1)
-            return -1;
-
-        n_blocks_ind++;
-        mem = sub_or_zero(mem, BLOCK_SIZE);
-    }
-
-    /* If mem isn't zero, it means it tried to write more blocks than the FS allows */
-    return (ssize_t) mem;
-}
-
-
-ssize_t block_create(inode_t * inode, size_t mem){
-
-    /* Gets the amount of blocks the inode has */
-    int n_blocks = (int) ceil((double)inode-> i_size/ BLOCK_SIZE);
-
-    /* If they are more than 10, only indirect blocks should be created */
-    if (n_blocks >= 10)
-        return block_create_indirect(inode, mem);
-
-    /* Else, creates direct blocks until the limit */
-    while (n_blocks != 10 && mem > 0){
-        if((inode -> i_data_block[n_blocks] = data_block_alloc()) == -1)
-            return -1;
-
-        mem = sub_or_zero(mem, BLOCK_SIZE);
-        n_blocks++;
-    }
-    /* If `mem` is zero, then direct blocks were enough */
-    if (mem == 0)
-        return 0;
-    /* Else, besides the direct blocks created, more indirect blocks
-     * have to be created too (with the remaining memory) */
-    return block_create_indirect(inode,mem);
-}
-
-
 /* Gets next block, depending on the type (either DIRECT or INDIRECT) */
 /* It is either the block nr on the nth index of the inode data_block array, or the block nr stored
  * on the block of blocks, on the right space */
@@ -348,7 +290,7 @@ ssize_t data_block_write(inode_t * inode, size_t offset, char const * buffer, si
 
 
 /* Function that checks if blocks are already allocated and if not, allocates them */
-int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
+int create_necessary_blocks(size_t offset, inode_t *inode, size_t *to_write){
     
     /* Checks if the amount to write exceeds the amount possible. 
        If it does, then only allows to write the maximum possible. */
@@ -363,7 +305,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     /* Iterates between the starting block and the end block, allocating the blocks that haven't been allocated yet regarding direct entries */
     while(starting_block <= INODE_DIRECT_ENTRIES && starting_block <= end_block){
         
-        if(inode->i_data_block[starting_block-1] == 0)
+        if(inode->i_data_block[starting_block-1] == -1)
             if ((inode-> i_data_block[starting_block-1] = data_block_alloc()) == -1)
                 return -1;
         starting_block++;
@@ -371,7 +313,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     
     /* If the cycle ended because starting_block == end_block, then all the necessary
        blocks have been accounted for, so returns. */
-    if (starting_block == end_block){
+    if (starting_block == end_block+1){
         return 0; 
     }
     
@@ -384,7 +326,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     
     /* Checks if block_of_blocks was created already and, if not, creates it and 
        resets it's entries */
-    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == 0){
+    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == -1){
         /* Allocates block and gets it */
         if((inode->i_data_block[INODE_DIRECT_ENTRIES] = data_block_alloc()) == -1)
             return -1;
@@ -393,7 +335,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
             return -1;
         /* resets it's entries */
         for(int i = 0; i < BLOCKS_IN_A_INDIRECT_BLOCK; i++)
-            block_of_blocks[i] = 0;
+            block_of_blocks[i] = -1;
     }
     
     /* Sets the block of blocks if it hadn't been set yet */
@@ -402,7 +344,7 @@ int create_blocks_if_needed(size_t offset, inode_t *inode, size_t *to_write){
     /* Now, checks indirect entries */
     while (starting_block <= end_block) {
     
-        if (block_of_blocks[starting_block-1] == 0)
+        if (block_of_blocks[starting_block-1] == -1)
             if ((block_of_blocks[starting_block-1] = data_block_alloc()) == -1)
                 return -1;
         starting_block++;
@@ -440,12 +382,11 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     
     /* Checks if all necessary blocks are already allocated 
        and if not, creates them */     
-    if (create_blocks_if_needed(file->of_offset, inode, &to_write) == -1){
+    if (create_necessary_blocks(file->of_offset, inode, &to_write) == -1){
         pthread_rwlock_unlock(&inode->rwlock);
         pthread_mutex_unlock(&file->mutex);
         return -1;    
     }
-
 
     /* Writes the data, now with enough space */
     data_block_write(inode, file->of_offset, buffer, to_write);
