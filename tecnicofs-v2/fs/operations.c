@@ -22,7 +22,7 @@ int tfs_init() {
     /* create root inode */
     int root = inode_create(T_DIRECTORY);
     if (root != ROOT_DIR_INUM) {
-        return -1;
+        return ERROR;
     }
 
     return 0;
@@ -42,7 +42,7 @@ static bool valid_pathname(char const *name) {
 
 int tfs_lookup(char const *name) {
     if (!valid_pathname(name)) {
-        return -1;
+        return ERROR;
     }
 
     // skip the initial '/' character
@@ -58,7 +58,7 @@ int tfs_open(char const *name, int flags) {
     int open_type;
     /* Checks if the path name is valid */
     if (!valid_pathname(name)) {
-        return -1;
+        return ERROR;
     }
     inode_t* inode = NULL;
     inum = tfs_lookup(name);
@@ -68,7 +68,7 @@ int tfs_open(char const *name, int flags) {
 
         inode = inode_get(inum);
         if (inode == NULL) {
-            return -1;
+            return ERROR;
         }
 
         /*Since the inode exists, locks it */
@@ -82,9 +82,9 @@ int tfs_open(char const *name, int flags) {
 
                 /*Frees every direct block*/
                 for (i = 0; i < n_blocks && i < 10; i++)
-                    if (data_block_free(inode->i_data_block[i]) == -1) {
+                    if (data_block_free(inode->i_data_block[i]) == ERROR) {
                         pthread_rwlock_unlock(&inode->rwlock);
-                        return -1;
+                        return ERROR;
                     }
 
                 /*If there are indirect blocks, frees them and the block of blocks */
@@ -93,18 +93,18 @@ int tfs_open(char const *name, int flags) {
                     int *block_of_blocks = (int *) data_block_get(inode->i_data_block[10]);
 
                     while (n_blocks != 0) {
-                        if (data_block_free(*block_of_blocks) == -1) {
+                        if (data_block_free(*block_of_blocks) == ERROR) {
                             pthread_rwlock_unlock(&inode->rwlock);
-                            return -1;
+                            return ERROR;
                         }
 
                         block_of_blocks++;
                         n_blocks--;
                     }
                     /*Block of blocks being fred */
-                    if (data_block_free( inode->i_data_block[10]) == -1) {
+                    if (data_block_free( inode->i_data_block[10]) == ERROR) {
                         pthread_rwlock_unlock(&inode->rwlock);
-                        return -1;
+                        return ERROR;
                     }
                 }
                 /* Since there were no errors, sets the size of the inode to 0 */
@@ -126,18 +126,18 @@ int tfs_open(char const *name, int flags) {
             /* the flags specify that it should be created */
             /* Create inode */
             inum = inode_create(T_FILE);
-            if (inum == -1) {
-                return -1;
+            if (inum == ERROR) {
+                return ERROR;
             }
             /* Add entry in the root directory */
-            if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == -1) {
+            if (add_dir_entry(ROOT_DIR_INUM, inum, name + 1) == ERROR) {
                 inode_delete(inum);
-                return -1;
+                return ERROR;
             }
             open_type = TFS_O_CREAT;
         }
     else {
-        return -1;
+        return ERROR;
     }
 
     /* Finally, add entry to the open file table and
@@ -182,7 +182,7 @@ ssize_t block_write(inode_t *inode, size_t * block_offset, char const *buffer, i
     void *block = get_next_block(block_of_blocks, inode, *n_blocks, type);
 
     if (block == NULL)
-        return -1;
+        return ERROR;
 
     /* Writes the first bytes on the already used block that has some space */
     size_t what_to_write = min(*mem_available, *to_write);
@@ -219,7 +219,7 @@ ssize_t block_write(inode_t *inode, size_t * block_offset, char const *buffer, i
         block = get_next_block(block_of_blocks, inode,*n_blocks,type);
 
         if (block == NULL)
-            return -1;
+            return ERROR;
 
         /* Copies the data */
         memcpy(block + *block_offset,  buffer + *buffer_offset, what_to_write);
@@ -263,8 +263,8 @@ ssize_t data_block_write(inode_t * inode, size_t offset, char const * buffer, si
         res = block_write(inode, &block_offset, buffer, &n_blocks,
                           &to_write, to_write_cpy, &mem_available, &buffer_offset, DIRECT);
 
-        if (res == -1)
-            return -1;
+        if (res == ERROR)
+            return ERROR;
 
         /* If the result of writing was the original write size, then everything was written, so returns */
         else if(res == to_write_cpy)
@@ -280,20 +280,15 @@ ssize_t data_block_write(inode_t * inode, size_t offset, char const * buffer, si
     res = block_write(inode, &block_offset, buffer, &n_blocks,
                       &to_write, to_write_cpy, &mem_available,&buffer_offset,INDIRECT);
 
-    if (res == -1)
-        return -1;
+    if (res == ERROR)
+        return ERROR;
 
     /* Verifies if everything was written. If not, there was not enough space */
     else if (res == to_write_cpy)
         return (ssize_t) to_write_cpy;
 
-    return -1;
+    return ERROR;
 }
-
-/*
-   4 casos: offset a 0 : nenhum bloco criado
-                         blocos_criados/parcialmente criados
-            offset != 0 : blocos estas criados/parcialmente criados */
 
 
 /* Function that checks if blocks are already allocated and if not, allocates them */
@@ -312,9 +307,9 @@ int create_necessary_blocks(size_t offset, inode_t *inode, size_t *to_write){
     /* Iterates between the starting block and the end block, allocating the blocks that haven't been allocated yet regarding direct entries */
     while(starting_block <= INODE_DIRECT_ENTRIES && starting_block <= end_block){
         
-        if(inode->i_data_block[starting_block-1] == -1)
-            if ((inode-> i_data_block[starting_block-1] = data_block_alloc()) == -1)
-                return -1;
+        if(inode->i_data_block[starting_block-1] == NOT_ALLOCD)
+            if ((inode-> i_data_block[starting_block-1] = data_block_alloc()) == ERROR)
+                return ERROR;
         starting_block++;
     }
     
@@ -324,7 +319,7 @@ int create_necessary_blocks(size_t offset, inode_t *inode, size_t *to_write){
         return 0; 
     }
     
-    /* If not, then indirect blocks must be checked first */
+    /* If not, then indirect blocks must be checked first: */
     
     int *block_of_blocks = NULL;
     /* Updates the starting_block and end_block so they are easier to use */
@@ -333,16 +328,16 @@ int create_necessary_blocks(size_t offset, inode_t *inode, size_t *to_write){
     
     /* Checks if block_of_blocks was created already and, if not, creates it and 
        resets it's entries */
-    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == -1){
+    if (inode->i_data_block[INODE_DIRECT_ENTRIES] == NOT_ALLOCD){
         /* Allocates block and gets it */
-        if((inode->i_data_block[INODE_DIRECT_ENTRIES] = data_block_alloc()) == -1)
-            return -1;
+        if((inode->i_data_block[INODE_DIRECT_ENTRIES] = data_block_alloc()) == ERROR)
+            return ERROR;
         block_of_blocks = (int *) data_block_get(inode->i_data_block[INODE_DIRECT_ENTRIES]);
         if (block_of_blocks == NULL)
-            return -1;
+            return ERROR;
         /* resets it's entries */
         for(int i = 0; i < BLOCKS_IN_A_INDIRECT_BLOCK; i++)
-            block_of_blocks[i] = -1;
+            block_of_blocks[i] = NOT_ALLOCD;
     }
     
     /* Sets the block of blocks if it hadn't been set yet */
@@ -351,9 +346,9 @@ int create_necessary_blocks(size_t offset, inode_t *inode, size_t *to_write){
     /* Now, checks indirect entries */
     while (starting_block <= end_block) {
     
-        if (block_of_blocks[starting_block-1] == -1)
-            if ((block_of_blocks[starting_block-1] = data_block_alloc()) == -1)
-                return -1;
+        if (block_of_blocks[starting_block-1] == NOT_ALLOCD)
+            if ((block_of_blocks[starting_block-1] = data_block_alloc()) == ERROR)
+                return ERROR;
         starting_block++;
     }
     
@@ -367,7 +362,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     /* Gets the file from the file handle to write on */
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
-        return -1;
+        return ERROR;
     }
 
     /* From the open file table entry, we get the inode */
@@ -377,7 +372,7 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     inode_t *inode = inode_get(file->of_inumber);
     if (inode == NULL) {
         pthread_mutex_unlock(&file ->mutex);
-        return -1;
+        return ERROR;
     }
 
     /* locks the inode, because everything on it will be updated, and gets 
@@ -394,10 +389,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
            
     /* Checks if all necessary blocks are already allocated 
        and if not, creates them */     
-    if (create_necessary_blocks(file->of_offset, inode, &to_write) == -1){
+    if (create_necessary_blocks(file->of_offset, inode, &to_write) == ERROR){
         pthread_rwlock_unlock(&inode->rwlock);
         pthread_mutex_unlock(&file->mutex);
-        return -1;    
+        return ERROR;
     }
 
     /* Writes the data, now with enough space */
@@ -418,23 +413,25 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
 }
 
 
-ssize_t block_read(char * buffer, int const *block_of_blocks,int *n_blocks, size_t * block_offset, size_t * buffer_offset, inode_t * inode,size_t * to_read,size_t to_read_cpy, int type){
+ssize_t block_read(char * buffer, int const *block_of_blocks,int *n_blocks, size_t *block_offset, size_t * buffer_offset, inode_t * inode,size_t * to_read,size_t to_read_cpy, int type){
 
-        void * block = get_next_block(block_of_blocks,inode,*n_blocks,type);
-        if(block == NULL)
-            return -1;
-        //void * block1 = data_block_get(*(block_of_blocks + *n_blocks-1));
+    /* Gets the next block */
+    void * block = get_next_block(block_of_blocks,inode,*n_blocks,type);
+    if(block == NULL)
+        return ERROR;
 
-        size_t what_to_read = min(*to_read, BLOCK_SIZE - *block_offset);
-        memcpy(buffer + *buffer_offset,block + *block_offset,what_to_read);
+    /* Calculates the amount to read and reads it to the buffer */
+    size_t what_to_read = min(*to_read, BLOCK_SIZE - *block_offset);
+    memcpy(buffer + *buffer_offset,block + *block_offset,what_to_read);
 
-        if(what_to_read == *to_read)
-            return (ssize_t) to_read_cpy;
+    if(what_to_read == *to_read)
+        return (ssize_t) to_read_cpy;
 
-        *buffer_offset += what_to_read;
-        (*n_blocks)++;
-        *to_read = sub_or_zero(*to_read, what_to_read);
-        return 0;
+    /* Updates the variables */
+    *buffer_offset += what_to_read;
+    (*n_blocks)++;
+    *to_read = sub_or_zero(*to_read, what_to_read);
+    return 0;
 }
 
 ssize_t data_block_read(void *buffer, inode_t *inode, size_t offset, size_t to_read){
@@ -451,8 +448,8 @@ ssize_t data_block_read(void *buffer, inode_t *inode, size_t offset, size_t to_r
         /* If block offset isn't zero, we want to read just a part of the starting block */
         if (block_offset != 0) {
             ssize_t res = block_read(buffer,NULL,&n_blocks,&block_offset,&buffer_offset,inode,&to_read, to_read_cpy, DIRECT);
-            if (res == -1)
-                return -1;
+            if (res == ERROR)
+                return ERROR;
             else if (res == (ssize_t)to_read_cpy)
                 return res;
             block_offset = 0;
@@ -461,8 +458,8 @@ ssize_t data_block_read(void *buffer, inode_t *inode, size_t offset, size_t to_r
         /* Keeps reading until the end of the direct blocks */
         while (n_blocks <= 10 && to_read > 0){
             ssize_t res = block_read(buffer,NULL,&n_blocks,&block_offset,&buffer_offset,inode,&to_read, to_read_cpy, DIRECT);
-            if (res == -1)
-                return -1;
+            if (res == ERROR)
+                return ERROR;
             else if(res == (ssize_t) to_read_cpy)
                 return res;    
         }
@@ -476,15 +473,15 @@ ssize_t data_block_read(void *buffer, inode_t *inode, size_t offset, size_t to_r
     int* block_of_blocks = (int*)data_block_get(inode->i_data_block[10]);
 
     if (block_of_blocks == NULL)
-        return -1;
+        return ERROR;
 
     /* If block_offset isn't zero, we want to skip a part of the starting block (doesn't happen if
      * coming from direct blocks, because the block_offset is set to 0) */
     if (block_offset != 0) {
 
         ssize_t res = block_read(buffer,block_of_blocks,&n_blocks,&block_offset,&buffer_offset,inode,&to_read, to_read_cpy, INDIRECT);
-        if (res == -1)
-            return -1;
+        if (res == ERROR)
+            return ERROR;
         else if(res == (ssize_t) to_read_cpy)
             return res;
         block_offset = 0;
@@ -493,13 +490,13 @@ ssize_t data_block_read(void *buffer, inode_t *inode, size_t offset, size_t to_r
     /* Reads to the buffer while there are bytes to be read */
     while (to_read > 0){
         ssize_t res = block_read(buffer,block_of_blocks,&n_blocks,&block_offset,&buffer_offset,inode,&to_read, to_read_cpy, INDIRECT);
-        if (res == -1)
-            return -1;
+        if (res == ERROR)
+            return ERROR;
         else if(res == (ssize_t) to_read_cpy)
             return res;
     }
 
-    return -1;
+    return ERROR;
 }
 
 
@@ -508,7 +505,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     /* Gets the file from the file handle */
     open_file_entry_t *file = get_open_file_entry(fhandle);
     if (file == NULL) {
-        return -1;
+        return ERROR;
     }
 
     /* Locks the file until everything is read and from the open file table entry, we get the inode */
@@ -516,7 +513,7 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
     inode_t *inode = inode_get(file->of_inumber);
     if (inode == NULL) {
         pthread_mutex_unlock(&file->mutex);
-        return -1;
+        return ERROR;
     }
 
     /* Since the inode exists, we lock it and determine how many bytes to read */
@@ -527,8 +524,9 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
         }
         file->has_opened = ALREADY_OPENED;
     }
-    
-    size_t to_read = inode->i_size - file->of_offset; //
+
+    /* Gets the amount to read and checks if it is above the limit */
+    size_t to_read = inode->i_size - file->of_offset;
     if (to_read > len) {
         to_read = len;
     }
@@ -552,18 +550,18 @@ int tfs_copy_to_external_fs(char const *source_path, char const *dest_path) {
 
     /* Checks if the path name is valid */
     if (!valid_pathname(source_path)) {
-        return -1;
+        return ERROR;
     }
 
     /* Given the path, gets the inumber */
     int inum = tfs_lookup(source_path);
-    if (inum == -1)
-        return -1;
+    if (inum == ERROR)
+        return ERROR;
 
     /* Given the inumber, gets the inode */
     inode_t *inode = inode_get(inum);
     if (inode == NULL)
-        return -1;
+        return ERROR;
 
     /* Since everything is in order, gets the appropriate variables and adds the file to the
      * open file table */
@@ -579,12 +577,12 @@ int tfs_copy_to_external_fs(char const *source_path, char const *dest_path) {
     FILE *f = fopen(dest_path, "w+");
 
     if (f == NULL)
-        return -1;
+        return ERROR;
 
     size_t bytes_written = fwrite(buffer, sizeof(char), size, f);
 
     if (bytes_written != size)
-        return -1;
+        return ERROR;
 
     fclose(f);
     free(buffer);
