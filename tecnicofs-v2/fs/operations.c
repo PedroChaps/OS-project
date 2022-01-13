@@ -521,8 +521,13 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Since the inode exists, we lock it and determine how many bytes to read */
     pthread_rwlock_rdlock(&(inode->rwlock));
-    if (file -> open_type == TFS_O_APPEND)
-        file -> of_offset = inode -> i_size;
+    if(file->has_opened == NOT_OPENED_YET){
+        if (file->open_type == TFS_O_APPEND){
+        file-> of_offset = inode -> i_size;
+        }
+        file->has_opened = ALREADY_OPENED;
+    }
+    
     size_t to_read = inode->i_size - file->of_offset; //
     if (to_read > len) {
         to_read = len;

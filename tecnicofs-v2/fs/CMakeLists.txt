@@ -13,6 +13,6 @@ add_executable(fs
         operations.h
         state.c
         state.h
-        tests/TR_write_with_multiple_tests_different_fh_truncate.c)
+        tests/TR_close_file.c)
 
 target_link_libraries(fs PRIVATE m)

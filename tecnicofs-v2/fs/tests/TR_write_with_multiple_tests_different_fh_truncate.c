@@ -2,12 +2,14 @@
 #include <assert.h>
 #include <string.h>
 #include <pthread.h>
+#include <unistd.h>
 
 char * path = "/f1";
 
 void* fn1(void * arg){
     char * buffer = (char*) arg;
     int fd = tfs_open(path,TFS_O_TRUNC);
+    sleep(0.5);
     assert(fd !=-1);
     assert(tfs_write(fd,buffer,18) == 18);
     assert(tfs_close(fd)!=-1);
@@ -18,6 +20,7 @@ void* fn1(void * arg){
 void* fn2(void * arg){
     char * buffer = (char*) arg;
     int fd = tfs_open(path,TFS_O_TRUNC);
+    sleep(0.2);
     assert(fd !=-1);
     assert(tfs_write(fd,buffer,21) == 21);
     assert(tfs_close(fd)!=-1);
@@ -27,6 +30,7 @@ void* fn2(void * arg){
 void* fn3(void * arg){
     char * buffer = (char*) arg;
     int fd = tfs_open(path,TFS_O_TRUNC);
+    sleep(0.7);
     assert(fd !=-1);
     assert(tfs_write(fd,buffer,6) == 6);
     assert(tfs_close(fd)!=-1);

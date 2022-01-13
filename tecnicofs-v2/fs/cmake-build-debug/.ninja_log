@@ -1,7 +1,21 @@
 # ninja log v5
-0	35	1642033136461052028	CMakeFiles/fs.dir/tests/TR_write_with_multiple_tests_different_fh_truncate.c.o	15b86846ab9a6404
-0	58	1642033136485051425	CMakeFiles/fs.dir/state.c.o	f748f5c731423659
-0	60	1642033136489051324	CMakeFiles/fs.dir/operations.c.o	76495ae8eda59d0a
-60	101	1642033136529050318	fs	a4abfae74190c455
-0	31	1642033571261810072	CMakeFiles/fs.dir/tests/TR_write_with_multiple_tests_different_fh_truncate.c.o	15b86846ab9a6404
-32	57	1642033571285809826	fs	a4abfae74190c455
+1	70	1642073632389756162	CMakeFiles/fs.dir/state.c.o	f748f5c731423659
+0	64	1642073632393756147	CMakeFiles/fs.dir/operations.c.o	76495ae8eda59d0a
+0	33	1642073959259733492	CMakeFiles/fs.dir/tests/TR_write_with_multiple_tests_different_fh_truncate.c.o	15b86846ab9a6404
+33	53	1642073959279733383	fs	a4abfae74190c455
+0	24	1642076298765095003	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+24	42	1642076298785094853	fs	4fcaac281fe82ebe
+1	53	1642078510723213016	CMakeFiles/fs.dir/operations.c.o	76495ae8eda59d0a
+53	76	1642078510747212856	fs	4fcaac281fe82ebe
+0	27	1642078733521732503	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+27	50	1642078733541732370	fs	4fcaac281fe82ebe
+0	35	1642078893044674998	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+35	57	1642078893068674839	fs	4fcaac281fe82ebe
+0	28	1642078970896159471	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+28	49	1642078970916159338	fs	4fcaac281fe82ebe
+1	30	1642079055123602066	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+30	52	1642079055143601933	fs	4fcaac281fe82ebe
+0	26	1642079085667400016	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+26	46	1642079085687399884	fs	4fcaac281fe82ebe
+1	28	1642079105759267124	CMakeFiles/fs.dir/tests/TR_close_file.c.o	b077b5462be0c47a
+28	48	1642079105779266991	fs	4fcaac281fe82ebe
