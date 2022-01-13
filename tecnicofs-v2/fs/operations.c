@@ -7,6 +7,8 @@
 #include <pthread.h>
 #define DIRECT 0
 #define INDIRECT 1
+#define ALREADY_OPENED 1
+#define NOT_OPENED_YET 0 
 
 #define max(a, b) (a > b ? a : b)
 #define min(a, b) (a > b ? b : a)
@@ -144,6 +146,7 @@ int tfs_open(char const *name, int flags) {
     open_file_entry_t *file  = get_open_file_entry(fh);
     pthread_mutex_lock(&file->mutex);
     file->open_type = open_type;
+    file->has_opened = NOT_OPENED_YET;
     pthread_mutex_unlock(&file->mutex);
     if (inode != NULL)
         pthread_rwlock_unlock(&inode->rwlock);
@@ -382,8 +385,11 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     /* the available memory (to write) is all the memory possible in a single file 
        minus the open file offeset */
     pthread_rwlock_wrlock(&inode->rwlock);
-    if (file->open_type == TFS_O_APPEND){
+    if(file->has_opened == NOT_OPENED_YET){
+        if (file->open_type == TFS_O_APPEND){
         file-> of_offset = inode -> i_size;
+        }
+        file->has_opened = ALREADY_OPENED;
     }
            
     /* Checks if all necessary blocks are already allocated 

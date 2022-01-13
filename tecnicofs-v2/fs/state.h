@@ -38,6 +38,7 @@ typedef struct {
     size_t of_offset;
     pthread_mutex_t mutex;
     int open_type;
+    int has_opened;
 } open_file_entry_t;
 
 #define MAX_DIR_ENTRIES (BLOCK_SIZE / sizeof(dir_entry_t))

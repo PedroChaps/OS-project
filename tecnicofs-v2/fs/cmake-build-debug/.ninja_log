@@ -1,0 +1,7 @@
+# ninja log v5
+0	35	1642033136461052028	CMakeFiles/fs.dir/tests/TR_write_with_multiple_tests_different_fh_truncate.c.o	15b86846ab9a6404
+0	58	1642033136485051425	CMakeFiles/fs.dir/state.c.o	f748f5c731423659
+0	60	1642033136489051324	CMakeFiles/fs.dir/operations.c.o	76495ae8eda59d0a
+60	101	1642033136529050318	fs	a4abfae74190c455
+0	31	1642033571261810072	CMakeFiles/fs.dir/tests/TR_write_with_multiple_tests_different_fh_truncate.c.o	15b86846ab9a6404
+32	57	1642033571285809826	fs	a4abfae74190c455

@@ -3,7 +3,7 @@
 #include <string.h>
 #include <pthread.h>
 #define SIZE 27
-#define N_THREADS 6
+#define N_THREADS 20
 char * path = "/f1";
 void* fn(void * arg){
     char * buffer = (char*) arg;
@@ -41,7 +41,7 @@ int main(){
     assert(tfs_read(fd,myoutput,SIZE * N_THREADS) == SIZE*N_THREADS);
     assert(tfs_close(fd)!= -1);
     assert(memcmp(output,myoutput,SIZE * N_THREADS)== 0); 
-    printf("Sucessful test\n");
+    printf("SUCESS\n");
     exit(EXIT_SUCCESS);
 
 }
