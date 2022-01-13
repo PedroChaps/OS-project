@@ -16,7 +16,7 @@ INCLUDES = $(addprefix -I, $(INCLUDE_DIRS))
 SOURCES  := $(wildcard */*.c)
 HEADERS  := $(wildcard */*.h)
 OBJECTS  := $(SOURCES:.c=.o)
-TARGET_EXECS := tests/create_different_files_with_threads tests/write_using_multiple_threads  #tests/nome_do_3o_teste
+TARGET_EXECS := tests/create_different_files_with_threads tests/write_using_multiple_threads tests/write_and_read_with_threads
 
 # VPATH is a variable used by Makefile which finds *sources* and makes them available throughout the codebase
 # vpath %.h <DIR> tells make to look for header files in <DIR>
@@ -50,7 +50,7 @@ endif
 
 all: clean $(TARGET_EXECS)
 
-test : test1 test2 #test3
+test : test1 test2 test3
 	@echo "The tests have ended! :D"
 
 test1:
@@ -61,13 +61,9 @@ test2:
 	@echo ----- Test 2 ------
 	./tests/create_different_files_with_threads
 
-
-#test3:
-#	@echo ----- Test 3 ------
-#	./tests/nome_do_3o_teste.c
-
-#Tirar comentários da linha 17, 50, 61-63, 86
-#Tirar comentários da linha 28
+test3:
+	@echo ----- Test 3 ------
+	./tests/write_and_read_with_threads
 
 # The following target can be used to invoke clang-format on all the source and header
 # files. clang-format is a tool to format the source code based on the style specified 
@@ -87,8 +83,8 @@ fmt: $(SOURCES) $(HEADERS)
 # the CC, LD, CFLAGS and LDFLAGS are used in this rule
 tests/create_different_files_with_threads: fs/operations.o fs/state.o tests/create_different_files_with_threads.o
 tests/write_using_multiple_threads: fs/operations.o fs/state.o tests/write_using_multiple_threads.o
+tests/write_and_read_with_threads: fs/operations.o fs/state.o tests/write_and_read_with_threads.o
 
-#tests/nome_do_3o_teste: tests/tests/nome_do_3o_teste.o fs/operations.o fs/state.o
 
 
 clean:
