@@ -9,15 +9,14 @@ void* fn(void * arg){
     char * buffer = (char*) arg;
     int fd = tfs_open(path,TFS_O_APPEND);
     assert(fd !=-1);
-    int res = tfs_write(fd,buffer,SIZE);
-    assert(res == SIZE);
+    assert(tfs_write(fd,buffer,SIZE) == SIZE);
     assert(tfs_close(fd)!=-1);
     return NULL;
 }
 
 int main(){
     pthread_t tid[N_THREADS];
-    char buffer[SIZE + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+    char *buffer= "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
     char output[SIZE*N_THREADS + 1];
     char myoutput[SIZE*N_THREADS + 1];
     int of = 0;
@@ -31,24 +30,18 @@ int main(){
     assert(fd !=-1);
     assert(tfs_close(fd)!= -1);
     for (int i = 0; i < N_THREADS; i++ ){
-        int res = pthread_create(&tid[i],NULL,fn, (void*) buffer);
-        assert(res == 0);
+        assert(!pthread_create(&tid[i],NULL,fn, (void*) buffer));
     }
     for(int i= 0; i<N_THREADS; i++) {
-        int res = pthread_join(tid[i], NULL);
-        assert(res == 0);
+        assert(!pthread_join(tid[i], NULL));
     }
+
     fd = tfs_open(path,0);
     assert(fd !=-1);
-    int res = tfs_read(fd,myoutput,SIZE * N_THREADS);
-    printf("%s\n",myoutput);
-    printf("%d\n",res);
-    //assert(res == SIZE * N_THREADS);
+    assert(tfs_read(fd,myoutput,SIZE * N_THREADS) == SIZE*N_THREADS);
     assert(tfs_close(fd)!= -1);
-    myoutput[res] = '\0';
-    int cmp = strcmp(output,myoutput);
-    //assert(cmp == 0);
-    printf("SUCESS");
+    assert(memcmp(output,myoutput,SIZE * N_THREADS)== 0); 
+    printf("SUCESS\n");
     exit(EXIT_SUCCESS);
 
 }

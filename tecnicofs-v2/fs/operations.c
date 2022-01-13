@@ -52,8 +52,8 @@ int tfs_lookup(char const *name) {
 
 int tfs_open(char const *name, int flags) {
     int inum;
-    size_t offset;
-
+    size_t offset = 0;
+    int open_type;
     /* Checks if the path name is valid */
     if (!valid_pathname(name)) {
         return -1;
@@ -112,10 +112,10 @@ int tfs_open(char const *name, int flags) {
 
         /* Determine initial offset */
         if (flags & TFS_O_APPEND) {
-            offset = inode->i_size;
+            open_type = TFS_O_APPEND;
         }
         else {
-            offset = 0;
+            open_type = TFS_O_TRUNC;
         }
     }
 
@@ -132,7 +132,7 @@ int tfs_open(char const *name, int flags) {
                 inode_delete(inum);
                 return -1;
             }
-            offset = 0;
+            open_type = TFS_O_CREAT;
         }
     else {
         return -1;
@@ -141,6 +141,10 @@ int tfs_open(char const *name, int flags) {
     /* Finally, add entry to the open file table and
      * return the corresponding handle */
     int fh = add_to_open_file_table(inum,offset);
+    open_file_entry_t *file  = get_open_file_entry(fh);
+    pthread_mutex_lock(&file->mutex);
+    file->open_type = open_type;
+    pthread_mutex_unlock(&file->mutex);
     if (inode != NULL)
         pthread_rwlock_unlock(&inode->rwlock);
     return fh;
@@ -378,8 +382,10 @@ ssize_t tfs_write(int fhandle, void const *buffer, size_t to_write) {
     /* the available memory (to write) is all the memory possible in a single file 
        minus the open file offeset */
     pthread_rwlock_wrlock(&inode->rwlock);
-    //size_t mem_available = (size_t) INODE_SIZE_AVAILABLE - file->of_offset;
-    
+    if (file->open_type == TFS_O_APPEND){
+        file-> of_offset = inode -> i_size;
+    }
+           
     /* Checks if all necessary blocks are already allocated 
        and if not, creates them */     
     if (create_necessary_blocks(file->of_offset, inode, &to_write) == -1){
@@ -509,6 +515,8 @@ ssize_t tfs_read(int fhandle, void *buffer, size_t len) {
 
     /* Since the inode exists, we lock it and determine how many bytes to read */
     pthread_rwlock_rdlock(&(inode->rwlock));
+    if (file -> open_type == TFS_O_APPEND)
+        file -> of_offset = inode -> i_size;
     size_t to_read = inode->i_size - file->of_offset; //
     if (to_read > len) {
         to_read = len;

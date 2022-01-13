@@ -43,7 +43,7 @@ int main(){
         }
 
     free(outputs);
-    printf("Sucesful test\n");
+    printf("Sucessful test\n");
     exit(EXIT_SUCCESS);
 
 }

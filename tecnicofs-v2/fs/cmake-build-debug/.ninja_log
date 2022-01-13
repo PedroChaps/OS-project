@@ -1,7 +1,0 @@
-# ninja log v5
-0	12	1641944270848144132	build.ninja	8ff76842f27a73d0
-1	54	1641657001319421744	CMakeFiles/fs.dir/state.c.o	f748f5c731423659
-0	53	1641684687547257065	CMakeFiles/fs.dir/operations.c.o	76495ae8eda59d0a
-0	33	1641827763997789103	CMakeFiles/fs.dir/tests/TR_read_w_multiple_threads.c.o	b8f752f7ca43c07e
-29	49	1641828611418170142	fs	3218854ca1858b30
-0	77	1641944305861254555	CMakeFiles/fs.dir/tests/TR_read_w_multiple_threads.c.o	b8f752f7ca43c07e
