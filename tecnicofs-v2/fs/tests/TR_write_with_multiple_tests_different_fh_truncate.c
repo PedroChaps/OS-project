@@ -7,7 +7,7 @@
 char * path = "/f1";
 void* fn(void * arg){
     char * buffer = (char*) arg;
-    int fd = tfs_open(path,TFS_O_APPEND);
+    int fd = tfs_open(path,TFS_O_TRUNC);
     assert(fd !=-1);
     int res = tfs_write(fd,buffer,SIZE);
     assert(res == SIZE);
@@ -17,7 +17,7 @@ void* fn(void * arg){
 
 int main(){
     pthread_t tid[N_THREADS];
-    char buffer[SIZE + 1] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
+    char *buffer = "ABCDEFGHIJKLMNOPQRSTUVWXYZ ";
     char myoutput[SIZE*N_THREADS + 1];
     assert(tfs_init()==0);
     int fd = tfs_open(path,TFS_O_CREAT);
